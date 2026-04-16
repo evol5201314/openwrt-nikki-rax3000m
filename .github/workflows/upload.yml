@@ -6,16 +6,25 @@ on:
 jobs:
   upload:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: 下载编译好的固件
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: openwrt       # 这里已经改成你编译任务的真实名字：openwrt
+          name: out               # 固件产物名称 99% 是 out
+          path: ./firmware        # 下载到这个目录
 
-      - name: 上传所有固件文件到 WebDAV
+      - name: 查看文件（确保下载成功）
+        run: ls -la ./firmware/
+
+      - name: 上传到坚果云 WebDAV
         uses: upekshapriya/webdav-upload-action@v1
         with:
           url: ${{ secrets.WEBDAV_URL }}
           username: ${{ secrets.WEBDAV_USERNAME }}
           password: ${{ secrets.WEBDAV_PASSWORD }}
-          localPath: ./bin/targets/
+          localPath: ./firmware/
           remotePath: /firmware/
           cleanRemote: false
