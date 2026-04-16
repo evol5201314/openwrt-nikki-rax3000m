@@ -17,7 +17,7 @@ on:
       CUSTOM_PLUGINS:
         description: '自定义插件名称，用空格分隔'
         required: false
-        default: 'luci-theme-aurora luci-app-ttyd luci-app-diskman luci-app-momo luci-app-advanced-reboot luci-app-v2raya luci-app-upnp luci-app-samba4 luci-app-rp-pppoe-server luci-app-package-manager luci-app-dawn luci-app-attendedsysupgrade'
+        default: 'luci-theme-aurora luci-app-ttyd luci-app-diskman luci-app-momo luci-app-filemanager luci-app-ocserv luci-app-smartdns luci-app-softether luci-app-sqm luci-app-upnp luci-app-advanced-reboot luci-app-v2raya luci-app-upnp luci-app-samba4 luci-app-rp-pppoe-server luci-app-package-manager luci-app-dawn luci-app-attendedsysupgrade'
         type: string
 
 env:
