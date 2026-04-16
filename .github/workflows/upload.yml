@@ -6,27 +6,15 @@ on:
 jobs:
   upload:
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
     steps:
-      - name: 下载编译好的固件
-        uses: dawidd6/action-download-artifact@v6
-        with:
-          workflow: openwrt
-          name: out
-          path: ./firmware
-
-      - name: 查看文件
-        run: ls -la ./firmware/
-
-      - name: 上传到坚果云
+      - name: 查看当前目录
+        run: ls -la
+        
+      - name: 安装 curl
+        run: sudo apt-get install -y curl
+        
+      - name: 上传所有文件到坚果云
         run: |
-          USER="${{ secrets.WEBDAV_USERNAME }}"
-          PASS="${{ secrets.WEBDAV_PASSWORD }}"
-          URL="${{ secrets.WEBDAV_URL }}"
-          
-          cd ./firmware
-          for f in *; do
-            echo "上传 $f..."
-            curl -s -S -u "$USER:$PASS" -T "$f" "$URL/firmware/$f"
-          done
+          curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
+          -T "bin/targets/mediatek/filogic/openwrt-mediatek-filogic-cmcc_rax3000m-256m-nand-squashfs-sysupgrade.bin" \
+          "${{ secrets.WEBDAV_URL }}firmware/rax3000m.bin"
