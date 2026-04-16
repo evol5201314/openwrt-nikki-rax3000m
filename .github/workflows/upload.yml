@@ -1,0 +1,23 @@
+name: 上传固件到 WebDAV
+
+on:
+  push:
+    branches: [ 25.12 ]
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 上传所有固件文件到 WebDAV
+        uses: upekshapriya/webdav-upload-action@v1
+        with:
+          url: ${{ secrets.WEBDAV_URL }}
+          username: ${{ secrets.WEBDAV_USERNAME }}
+          password: ${{ secrets.WEBDAV_PASSWORD }}
+          localPath: ./bin/targets/
+          remotePath: /firmware/
+          cleanRemote: false
