@@ -7,18 +7,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 获取并下载最新固件
+        id: download
         run: |
-          # 获取下载地址
           DOWNLOAD_URL=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.assets[0].browser_download_url')
-          # 获取真实文件名
+          if [ "$DOWNLOAD_URL" = "null" ] || [ -z "$DOWNLOAD_URL" ]; then
+            echo "错误：没有找到 Release asset"
+            exit 1
+          fi
           FILE_NAME=$(basename "$DOWNLOAD_URL")
-          # 下载
+          echo "下载文件: $FILE_NAME"
           wget -O "$FILE_NAME" "$DOWNLOAD_URL"
+          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
           ls -lh
-          
+
       - name: 上传到坚果云根目录
         run: |
-          FILE_NAME=$(ls | grep bin | head -1)
-          curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
-          -T "$FILE_NAME" \
-          "https://dav.jianguoyun.com/dav/$FILE_NAME"
+          FILE_NAME="${{ env.FILE_NAME }}"
+          echo "准备上传: $FILE_NAME"
+          # URL 编码
+          ENCODED_NAME=$(printf '%s' "$FILE_NAME" | jq -sRr @uri)
+          echo "编码后路径: $ENCODED_NAME"
+          curl -v -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
+               -T "$FILE_NAME" \
+               "https://dav.jianguoyun.com/dav/$ENCODED_NAME"
+          if [ $? -eq 0 ]; then
+            echo "上传成功"
+          else
+            echo "上传失败"
+            exit 1
+          fi
