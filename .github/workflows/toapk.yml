@@ -107,13 +107,13 @@ jobs:
             done
           fi
 
-      # 将生成的 APK 复制到仓库根目录下的 apk/ 文件夹
+      # 将生成的 APK 复制到仓库根目录下的 apk/istore/ 文件夹
       - name: Prepare APK directory
         run: |
-          mkdir -p apk
-          cp apk_output/*.apk apk/
+          mkdir -p apk/istore
+          cp apk_output/*.apk apk/istore/
 
-      # 提交并推送 APK 到当前分支的 /apk 目录
+      # 提交并推送 APK 到当前分支的 /apk/istore 目录
       - name: Commit and push APKs to repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -121,14 +121,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 添加 apk 目录的所有变更（新增、修改、删除）
-          git add apk/
+          # 只添加 apk/istore 目录的变更
+          git add apk/istore/
           
           # 检查是否有实际变更
           if git diff --cached --quiet; then
             echo "没有检测到 APK 变更，跳过提交"
           else
-            git commit -m "Update APK packages from workflow run #${{ github.run_id }} [skip ci]"
+            git commit -m "Update iStore APK packages from workflow run #${{ github.run_id }} [skip ci]"
             # 拉取远程最新变更并 rebase，避免推送冲突
             git pull --rebase --autostash origin ${{ github.ref_name }} || true
             # 推送到当前分支
