@@ -100,7 +100,10 @@ jobs:
       run: |
         set -x
         cd $SOURCE_NAME
-        find ./staging_dir/ -name '*' -exec touch {} \; >/dev/null 2>&1
+        # 仅当 staging_dir 存在时才执行 touch，避免因目录不存在而失败
+        if [ -d staging_dir ]; then
+          find ./staging_dir/ -name '*' -exec touch {} \;
+        fi
         ./scripts/feeds update -a
         cd .. 
         [ -e patch ] && cp -rf patch/diy/*.patch $SOURCE_NAME
@@ -173,13 +176,10 @@ jobs:
         bash kmod-sign bin/packages/aarch64_cortex-a53/luci
         bash kmod-sign bin/packages/aarch64_cortex-a53/packages
 
-    # ==================== 新增：打包并发布到 Release ====================
     - name: 打包产物
       run: |
         cd $SOURCE_NAME
-        # 打包所有软件包（.apk 文件及签名）
         zip -r packages-${{ env.tag }}.zip bin/packages
-        # 打包生成的固件（.bin, .itb 等）
         cd $FIRMWARE
         zip -r $GITHUB_WORKSPACE/firmware-${{ env.tag }}.zip .
         cd $GITHUB_WORKSPACE
@@ -188,7 +188,6 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # 创建 Release（标签不存在时自动创建）
         gh release create "${{ env.tag }}" \
           --title "Build ${{ env.tag }} (device: ${{ matrix.device }})" \
           --notes "Auto-generated release from workflow run #${{ github.run_id }}\nOpenWrt source tag: ${{ env.release_tag }}" \
