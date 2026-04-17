@@ -29,13 +29,10 @@ jobs:
       - name: 添加 iStore 和 PassWall2 feeds（修复克隆）
         run: |
           cd openwrt
-          # iStore feed（正常）
           echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
-          # 手动克隆 PassWall2（避免 git 认证问题）
-          git clone --depth 1 https://github.com/xiaorouji/openwrt-passwall2.git feeds/passwall2
-          # 更新所有 feeds（包括手动添加的 passwall2）
+          # 关键修改：URL 中加入 token
+          git clone --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/xiaorouji/openwrt-passwall2.git feeds/passwall2
           ./scripts/feeds update -a
-          # 强制安装 passwall2 的包
           ./scripts/feeds install -a -p passwall2
           ./scripts/feeds install -a
 
