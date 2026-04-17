@@ -1,0 +1,89 @@
+name: apk3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 安装编译依赖
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential git python3 unzip libssl-dev libncurses5-dev file
+
+      - name: 克隆 OpenWrt 25.12 源码
+        run: |
+          git clone --depth 1 --branch v25.12.0 https://github.com/openwrt/openwrt.git
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 添加 iStore feed
+        run: |
+          cd openwrt
+          echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 配置（仅 iStore + 必要内核模块）
+        run: |
+          cd openwrt
+          cat > .config <<EOF
+          CONFIG_TARGET_mediatek=y
+          CONFIG_TARGET_mediatek_filogic=y
+          CONFIG_TARGET_mediatek_filogic_DEVICE_cmcc_rax3000m-emmc=y
+          CONFIG_APK=y
+          # 内核模块：启用常见依赖（iStore 可能用到）
+          CONFIG_PACKAGE_kmod-tun=y
+          CONFIG_PACKAGE_kmod-inet-diag=y
+          CONFIG_PACKAGE_kmod-ipt-conntrack=y
+          CONFIG_PACKAGE_kmod-ipt-nat=y
+          # iStore 核心
+          CONFIG_PACKAGE_istore=y
+          CONFIG_PACKAGE_luci-app-istore=y
+          CONFIG_PACKAGE_istore-sync=y
+          EOF
+          # 自动解决依赖（会包含必要的内核模块和库）
+          make defconfig
+
+      - name: 下载源码
+        run: cd openwrt && make download -j8
+
+      - name: 编译内核模块
+        run: |
+          cd openwrt
+          make target/linux/compile -j$(nproc)
+
+      - name: 编译 iStore 插件
+        run: |
+          cd openwrt
+          # 使用正确的路径（feeds 安装后）
+          make package/feeds/istore/istore/compile -j$(nproc)
+          make package/feeds/istore/luci-app-istore/compile -j$(nproc)
+          make package/feeds/istore/istore-sync/compile -j$(nproc)
+
+      - name: 收集所有 APK（含内核模块）
+        run: |
+          mkdir -p apks
+          find openwrt/bin -name "*.apk" -exec cp {} apks/ \;
+          cd apks
+          ls -la > packages.txt
+          tar -czvf ../istore-with-kmods.tar.gz .
+          echo "FILE=$GITHUB_WORKSPACE/istore-with-kmods.tar.gz" >> $GITHUB_ENV
+
+      - name: 上传到 Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: istore-apk-${{ github.run_number }}
+          name: "iStore APK (含内核模块)"
+          files: ${{ env.FILE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 上传作为 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: istore-with-kmods
+          path: ${{ env.FILE }}
+          retention-days: 30
