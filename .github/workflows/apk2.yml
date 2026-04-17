@@ -98,7 +98,8 @@ jobs:
       run: |
         set -x
         cd $SOURCE_NAME
-        find ./staging_dir/ -name '*' -exec touch {} \; >/dev/null 2>&1
+        # 修复：如果 staging_dir 不存在或为空，不报错
+        [ -d ./staging_dir ] && find ./staging_dir/ -name '*' -exec touch '{}' \; || true
         # 添加 iStore feed 源
         echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
         ./scripts/feeds update -a
@@ -179,7 +180,7 @@ jobs:
         bash kmod-sign bin/packages/aarch64_cortex-a53/luci
         bash kmod-sign bin/packages/aarch64_cortex-a53/packages
 
-    # ========== 提取 iStore APK 并上传（不推送到外部仓库）==========
+    # 提取 iStore APK 并上传（不推送到外部仓库）
     - name: 提取 iStore APK
       run: |
         mkdir -p istore_apk
