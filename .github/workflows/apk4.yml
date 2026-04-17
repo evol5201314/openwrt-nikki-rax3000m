@@ -1,0 +1,61 @@
+name: apk4
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target device'
+        required: true
+        default: 'mediatek/filogic'
+        type: choice
+        options:
+          - 'mediatek/filogic'
+
+jobs:
+  build-istore:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 安装编译依赖
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential git python3 unzip libssl-dev libncurses5-dev file wget
+
+      - name: 下载并解压 OpenWrt SDK
+        run: |
+          # 使用最新稳定版 (v25.12.0) 的 SDK，为你的设备定制
+          # 注意：你需要确保这里的 'mediatek/filogic' 与你设备的目标完全一致
+          SDK_URL="https://downloads.openwrt.org/releases/25.12.0/targets/mediatek/filogic/openwrt-sdk-25.12.0-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.xz"
+          wget $SDK_URL
+          tar -xf openwrt-sdk-*.tar.xz
+          mv openwrt-sdk-* sdk
+
+      - name: 添加 iStore Feed
+        run: |
+          cd sdk
+          echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 配置并编译 iStore
+        run: |
+          cd sdk
+          # 关键修复: 选中正确的包名 'luci-app-store'
+          echo "CONFIG_PACKAGE_luci-app-store=y" >> .config
+          echo "CONFIG_PACKAGE_istore-sync=y" >> .config
+          make defconfig
+          # 编译正确的包路径
+          make package/feeds/istore/luci-app-store/compile -j$(nproc)
+
+      - name: 收集并打包 APK 文件
+        run: |
+          mkdir -p apks
+          find sdk/bin -name "luci-app-store*.apk" -exec cp {} apks/ \;
+          find sdk/bin -name "istore-sync*.apk" -exec cp {} apks/ \;
+          cd apks
+          tar -czvf istore-apk.tar.gz .
+          echo "FILE=$GITHUB_WORKSPACE/istore-apk.tar.gz" >> $GITHUB_ENV
+
+      - name: 上传 APK 包
+        uses: actions/upload-artifact@v4
+        with:
+          name: istore-apk
+          path: ${{ env.FILE }}
