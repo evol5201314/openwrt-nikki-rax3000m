@@ -16,7 +16,7 @@ jobs:
       run: |
         git clone https://github.com/openwrt/openwrt.git
         cd openwrt
-        # 切换到 25.12 分支（建议根据你设备上的固件版本，选择精确的 tag，如 v25.12.0）
+        # 切换到 25.12 分支（根据您的设备固件版本，可以改用精确的 tag，如 v25.12.0）
         git checkout openwrt-25.12
         ./scripts/feeds update -a
         ./scripts/feeds install -a
@@ -50,7 +50,9 @@ jobs:
     - name: 编译 iStore APK
       run: |
         cd openwrt
-        # 编译 luci-app-store，如果失败则输出详细日志
+        # 关键修复：先编译所有 host 工具（包括 sed），确保环境完整
+        make tools/install -j$(nproc)
+        # 再编译目标包，如果失败则输出详细日志
         make package/feeds/istore/luci-app-store/compile -j1 V=s || { echo "=== Build Failed, check V=s output above ==="; exit 1; }
 
     - name: 收集 APK 文件
