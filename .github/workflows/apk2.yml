@@ -1,4 +1,5 @@
 name: apk2
+
 on:
   workflow_dispatch:
     inputs:
@@ -30,7 +31,6 @@ jobs:
           cd openwrt
           echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
           ./scripts/feeds update -a
-          # 安装所有 feed 中的软件包（包括 iStore 的依赖）
           ./scripts/feeds install -a
 
       - name: 配置（启用 iStore 及必要内核模块）
@@ -41,11 +41,12 @@ jobs:
           CONFIG_TARGET_mediatek_filogic=y
           CONFIG_TARGET_mediatek_filogic_DEVICE_cmcc_rax3000m-emmc=y
           CONFIG_APK=y
-          # iStore 组件
-          CONFIG_PACKAGE_istore=y
+          # iStore 组件（使用正确的包名）
+          CONFIG_PACKAGE_luci-app-store=y
           CONFIG_PACKAGE_luci-app-istore=y
+          CONFIG_PACKAGE_istore=y
           CONFIG_PACKAGE_istore-sync=y
-          # 可选内核模块（iStore 可能依赖）
+          # 可选内核模块
           CONFIG_PACKAGE_kmod-tun=y
           CONFIG_PACKAGE_kmod-inet-diag=y
           EOF
@@ -59,14 +60,36 @@ jobs:
           cd openwrt
           make target/linux/compile -j$(nproc) || true
 
-      - name: 编译 iStore 插件（详细输出）
+      - name: 列出 iStore feed 中的包（调试）
+        run: |
+          cd openwrt
+          echo "=== 所有 iStore 包 ==="
+          find feeds/istore -name "Makefile" | sed 's|feeds/istore/||' | sed 's|/Makefile||'
+          echo "======================"
+
+      - name: 编译 iStore 插件（自动检测正确包名）
         run: |
           cd openwrt
           # 再次确保所有依赖已安装
           ./scripts/feeds install -a
-          # 单独编译 iStore，输出详细错误
-          make package/istore/compile -j1 V=s
-          make package/luci-app-istore/compile -j1 V=s
+          
+          # 尝试编译常见的包名
+          # 优先尝试 luci-app-store（iStore 的主要界面）
+          if [ -d package/feeds/istore/luci-app-store ]; then
+            make package/feeds/istore/luci-app-store/compile -j1 V=s
+          elif [ -d package/feeds/istore/luci-app-istore ]; then
+            make package/feeds/istore/luci-app-istore/compile -j1 V=s
+          elif [ -d package/feeds/istore/istore ]; then
+            make package/feeds/istore/istore/compile -j1 V=s
+          else
+            # 直接使用 make 通配符编译所有 istore feed 中的包
+            make package/feeds/istore/*/compile -j1 V=s
+          fi
+          
+          # 编译 istore-sync（如果存在）
+          if [ -d package/feeds/istore/istore-sync ]; then
+            make package/feeds/istore/istore-sync/compile -j1 V=s
+          fi
 
       - name: 收集所有 APK（包括内核模块）
         run: |
