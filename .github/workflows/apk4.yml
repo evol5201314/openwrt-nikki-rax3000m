@@ -1,14 +1,7 @@
-name: apk4
+name: Build iStore APK via SDK
+
 on:
   workflow_dispatch:
-    inputs:
-      target:
-        description: 'Target device'
-        required: true
-        default: 'mediatek/filogic'
-        type: choice
-        options:
-          - 'mediatek/filogic'
 
 jobs:
   build-istore:
@@ -21,8 +14,7 @@ jobs:
 
       - name: 下载并解压 OpenWrt SDK
         run: |
-          # 使用最新稳定版 (v25.12.0) 的 SDK，为你的设备定制
-          # 注意：你需要确保这里的 'mediatek/filogic' 与你设备的目标完全一致
+          # 为你的 RAX3000M 设备选择正确的 SDK
           SDK_URL="https://downloads.openwrt.org/releases/25.12.0/targets/mediatek/filogic/openwrt-sdk-25.12.0-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.xz"
           wget $SDK_URL
           tar -xf openwrt-sdk-*.tar.xz
@@ -38,7 +30,7 @@ jobs:
       - name: 配置并编译 iStore
         run: |
           cd sdk
-          # 关键修复: 选中正确的包名 'luci-app-store'
+          # 选中正确的包名 'luci-app-store'
           echo "CONFIG_PACKAGE_luci-app-store=y" >> .config
           echo "CONFIG_PACKAGE_istore-sync=y" >> .config
           make defconfig
