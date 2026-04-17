@@ -1,5 +1,4 @@
 name: apk2
-
 on:
   workflow_dispatch:
     inputs:
@@ -31,6 +30,7 @@ jobs:
           cd openwrt
           echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
           ./scripts/feeds update -a
+          # 安装所有 feed 中的软件包（包括 iStore 的依赖）
           ./scripts/feeds install -a
 
       - name: 配置（启用 iStore 及必要内核模块）
@@ -59,11 +59,14 @@ jobs:
           cd openwrt
           make target/linux/compile -j$(nproc) || true
 
-      - name: 编译 iStore 插件
+      - name: 编译 iStore 插件（详细输出）
         run: |
           cd openwrt
-          make package/istore/compile -j$(nproc)
-          make package/luci-app-istore/compile -j$(nproc)
+          # 再次确保所有依赖已安装
+          ./scripts/feeds install -a
+          # 单独编译 iStore，输出详细错误
+          make package/istore/compile -j1 V=s
+          make package/luci-app-istore/compile -j1 V=s
 
       - name: 收集所有 APK（包括内核模块）
         run: |
