@@ -1,14 +1,17 @@
 name: 上传Release固件到坚果云
+
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 手动触发
 
 jobs:
   upload:
     runs-on: ubuntu-latest
+
     steps:
-      - name: 获取并下载最新固件
+      - name: 获取并下载最新 Release 固件
         id: download
         run: |
+          # 获取最新 Release 的第一个 asset 下载地址
           DOWNLOAD_URL=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.assets[0].browser_download_url')
           if [ "$DOWNLOAD_URL" = "null" ] || [ -z "$DOWNLOAD_URL" ]; then
             echo "错误：没有找到 Release asset"
@@ -20,19 +23,39 @@ jobs:
           echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
           ls -lh
 
-      - name: 上传到坚果云根目录
+      - name: 上传到坚果云（自动创建子目录）
         run: |
           FILE_NAME="${{ env.FILE_NAME }}"
-          echo "准备上传: $FILE_NAME"
-          # URL 编码
+          if [ -z "$FILE_NAME" ] || [ ! -f "$FILE_NAME" ]; then
+            echo "错误：文件 $FILE_NAME 不存在"
+            exit 1
+          fi
+
+          # 设置坚果云中的子目录名（可自行修改）
+          DIR_NAME="github_firmware"
+
+          # 对文件名进行 URL 编码（兼容空格、中文等特殊字符）
           ENCODED_NAME=$(printf '%s' "$FILE_NAME" | jq -sRr @uri)
-          echo "编码后路径: $ENCODED_NAME"
-          curl -v -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
-               -T "$FILE_NAME" \
-               "https://dav.jianguoyun.com/dav/$ENCODED_NAME"
-          if [ $? -eq 0 ]; then
-            echo "上传成功"
+
+          # 尝试创建子目录（如果已存在会返回 405 或 409，忽略错误）
+          echo "创建目录 /dav/$DIR_NAME（如果不存在）"
+          curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
+               -X MKCOL "https://dav.jianguoyun.com/dav/$DIR_NAME" || true
+
+          # 上传文件到子目录，并获取 HTTP 状态码
+          echo "上传文件到 /dav/$DIR_NAME/$ENCODED_NAME"
+          HTTP_CODE=$(curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
+                           -T "$FILE_NAME" \
+                           -w '%{http_code}' \
+                           -o /dev/null \
+                           -s \
+                           "https://dav.jianguoyun.com/dav/$DIR_NAME/$ENCODED_NAME")
+
+          # 判断上传是否成功（201 Created, 200 OK, 204 No Content 都表示成功）
+          if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
+            echo "✅ 上传成功！HTTP 状态码: $HTTP_CODE"
+            echo "文件已上传至：https://dav.jianguoyun.com/dav/$DIR_NAME/$ENCODED_NAME"
           else
-            echo "上传失败"
+            echo "❌ 上传失败，HTTP 状态码: $HTTP_CODE"
             exit 1
           fi
