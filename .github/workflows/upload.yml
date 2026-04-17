@@ -1,61 +1,65 @@
 name: 上传Release固件到坚果云
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
 
 jobs:
   upload:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 获取并下载最新 Release 固件
+      - name: 获取并下载所有 Release 固件
         id: download
         run: |
-          # 获取最新 Release 的第一个 asset 下载地址
-          DOWNLOAD_URL=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.assets[0].browser_download_url')
-          if [ "$DOWNLOAD_URL" = "null" ] || [ -z "$DOWNLOAD_URL" ]; then
-            echo "错误：没有找到 Release asset"
+          # 获取最新 Release 的所有 assets 信息
+          ASSETS=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.assets[].browser_download_url')
+          if [ -z "$ASSETS" ]; then
+            echo "错误：没有找到任何 Release asset"
             exit 1
           fi
-          FILE_NAME=$(basename "$DOWNLOAD_URL")
-          echo "下载文件: $FILE_NAME"
-          wget -O "$FILE_NAME" "$DOWNLOAD_URL"
-          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
+          
+          # 逐个下载
+          echo "$ASSETS" | while read -r DOWNLOAD_URL; do
+            FILE_NAME=$(basename "$DOWNLOAD_URL")
+            echo "下载: $FILE_NAME"
+            wget -O "$FILE_NAME" "$DOWNLOAD_URL"
+          done
+          
           ls -lh
 
-      - name: 上传到坚果云（自动创建子目录）
+      - name: 上传所有固件到坚果云（自动创建子目录）
         run: |
-          FILE_NAME="${{ env.FILE_NAME }}"
-          if [ -z "$FILE_NAME" ] || [ ! -f "$FILE_NAME" ]; then
-            echo "错误：文件 $FILE_NAME 不存在"
-            exit 1
-          fi
-
-          # 设置坚果云中的子目录名（可自行修改）
+          # 设置坚果云中的子目录名
           DIR_NAME="github_firmware"
-
-          # 对文件名进行 URL 编码（兼容空格、中文等特殊字符）
-          ENCODED_NAME=$(printf '%s' "$FILE_NAME" | jq -sRr @uri)
-
-          # 尝试创建子目录（如果已存在会返回 405 或 409，忽略错误）
-          echo "创建目录 /dav/$DIR_NAME（如果不存在）"
+          
+          # 创建子目录（忽略已存在错误）
           curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
                -X MKCOL "https://dav.jianguoyun.com/dav/$DIR_NAME" || true
-
-          # 上传文件到子目录，并获取 HTTP 状态码
-          echo "上传文件到 /dav/$DIR_NAME/$ENCODED_NAME"
-          HTTP_CODE=$(curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
-                           -T "$FILE_NAME" \
-                           -w '%{http_code}' \
-                           -o /dev/null \
-                           -s \
-                           "https://dav.jianguoyun.com/dav/$DIR_NAME/$ENCODED_NAME")
-
-          # 判断上传是否成功（201 Created, 200 OK, 204 No Content 都表示成功）
-          if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
-            echo "✅ 上传成功！HTTP 状态码: $HTTP_CODE"
-            echo "文件已上传至：https://dav.jianguoyun.com/dav/$DIR_NAME/$ENCODED_NAME"
-          else
-            echo "❌ 上传失败，HTTP 状态码: $HTTP_CODE"
-            exit 1
-          fi
+          
+          # 遍历当前目录下的所有 .bin 文件（根据实际情况可修改匹配模式）
+          for FILE_NAME in *.bin; do
+            # 如果没有 .bin 文件，跳过
+            [ -e "$FILE_NAME" ] || continue
+            
+            echo "上传: $FILE_NAME"
+            
+            # URL 编码文件名
+            ENCODED_NAME=$(printf '%s' "$FILE_NAME" | jq -sRr @uri)
+            
+            # 上传并获取 HTTP 状态码
+            HTTP_CODE=$(curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
+                             -T "$FILE_NAME" \
+                             -w '%{http_code}' \
+                             -o /dev/null \
+                             -s \
+                             "https://dav.jianguoyun.com/dav/$DIR_NAME/$ENCODED_NAME")
+            
+            if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
+              echo "✅ $FILE_NAME 上传成功 (HTTP $HTTP_CODE)"
+            else
+              echo "❌ $FILE_NAME 上传失败 (HTTP $HTTP_CODE)"
+              exit 1
+            fi
+          done
+          
+          echo "所有固件上传完成"
