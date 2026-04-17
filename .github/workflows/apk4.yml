@@ -1,4 +1,4 @@
-name: Build iStore APK via SDK
+name: apk4
 
 on:
   workflow_dispatch:
