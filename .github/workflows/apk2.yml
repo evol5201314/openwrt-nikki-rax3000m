@@ -26,15 +26,20 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 添加 iStore 和 PassWall2 feeds
+      - name: 添加 iStore 和 PassWall2 feeds（修复克隆）
         run: |
           cd openwrt
+          # iStore feed（正常）
           echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
-          echo "src-git passwall2 https://github.com/xiaorouji/openwrt-passwall2.git" >> feeds.conf.default
+          # 手动克隆 PassWall2（避免 git 认证问题）
+          git clone --depth 1 https://github.com/xiaorouji/openwrt-passwall2.git feeds/passwall2
+          # 更新所有 feeds（包括手动添加的 passwall2）
           ./scripts/feeds update -a
+          # 强制安装 passwall2 的包
+          ./scripts/feeds install -a -p passwall2
           ./scripts/feeds install -a
 
-      - name: 配置（启用插件及依赖的内核模块）
+      - name: 配置（启用插件及内核模块）
         run: |
           cd openwrt
           cat > .config <<EOF
@@ -65,7 +70,6 @@ jobs:
       - name: 编译内核模块
         run: |
           cd openwrt
-          # 编译内核模块（生成 kmod-*.apk）
           make target/linux/compile -j$(nproc)
 
       - name: 编译插件
@@ -79,10 +83,8 @@ jobs:
       - name: 收集所有 APK（包括内核模块）
         run: |
           mkdir apks
-          # 查找所有 .apk 文件（插件 + 内核模块 + 依赖）
           find openwrt/bin -name "*.apk" -exec cp {} apks/ \;
           cd apks
-          # 列出内容以便确认
           ls -la
           tar -czvf ../istore-passwall2-with-kmod-${{ inputs.arch }}.tar.gz .
           echo "FILE=$GITHUB_WORKSPACE/istore-passwall2-with-kmod-${{ inputs.arch }}.tar.gz" >> $GITHUB_ENV
