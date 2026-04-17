@@ -2,99 +2,141 @@ name: apk2
 
 on:
   workflow_dispatch:
+    inputs:
+      target_arch:
+        description: '目标架构 (x86_64 / aarch64_generic / etc.)'
+        required: true
+        default: 'x86_64'
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: 检查分支
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 释放磁盘空间
+      - name: 安装编译依赖
         run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile /mnt/swapfile
-          sudo docker image prune -a -f || true
-          sudo apt-get -y purge firefox clang* ghc* google* llvm* mono* mongo* mysql* php*
-          sudo apt-get -y autoremove --purge
-          sudo apt-get clean
-          df -Th
+          sudo apt update
+          sudo apt install -y build-essential clang flex bison g++ gawk \
+          gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
+          python3 python3-distutils python3-setuptools rsync swig unzip \
+          zlib1g-dev file wget subversion patch upx-ucl bc
 
-      - name: 编译环境
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: 准备 OpenWrt 构建环境 (25.12 版本)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y tar build-essential flex bison cmake g++ gawk gcc-multilib g++-multilib gettext git libfuse-dev libncurses5-dev libssl-dev python3 python3-pip python3-ply python3-distutils python3-pyelftools rsync unzip zlib1g-dev file wget subversion patch upx-ucl autoconf automake curl asciidoc binutils bzip2 lib32gcc-s1 libc6-dev-i386 uglifyjs msmtp texinfo libreadline-dev libglib2.0-dev xmlto libelf-dev libtool autopoint antlr3 gperf ccache swig coreutils haveged scons libpython3-dev rename qemu-utils
-          sudo apt-get clean
-          git config --global user.name 'GitHub Actions' && git config --global user.email 'noreply@github.com'
-          sudo timedatectl set-timezone Asia/Shanghai
-          sudo mkdir -p /workdir
-          chmod 777 /workdir
-          df -Th
-
-      - name: 设置环境变量
-        run: |
-          echo "REPO_URL=https://github.com/shiyu1314/openwrt-source" >> $GITHUB_ENV
-          echo "DEVICE=cmcc_rax3000m-emmc" >> $GITHUB_ENV
-
-      - name: 克隆源代码
-        working-directory: /workdir
-        run: |
-          git clone --depth=1 $REPO_URL openwrt
-
-      - name: 切换分支
-        working-directory: /workdir/openwrt
-        run: |
-          _release_tag=$(git tag --sort=taggerdate --list 'v25.*' | tail -1)
-          git checkout $_release_tag
-
-      - name: 添加插件源
-        working-directory: /workdir/openwrt
-        run: |
-          echo "src-git istore https://github.com/linkease/istore" >> feeds.conf.default
-          echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall-packages" >> feeds.conf.default
-          echo "src-git passwall2 https://github.com/xiaorouji/openwrt-passwall2" >> feeds.conf.default
-
-      - name: 更新 feeds
-        working-directory: /workdir/openwrt
-        run: |
+          # 克隆 OpenWrt 25.12 稳定版源码
+          git clone --depth 1 --branch v25.12.0 https://github.com/openwrt/openwrt.git openwrt
+          cd openwrt
+          
+          # 更新默认 feeds
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 配置插件
-        working-directory: /workdir/openwrt
+      - name: 添加 iStore 和 PassWall2 的 feeds 源
         run: |
-          make defconfig
-          cat >> .config <<EOF
-          CONFIG_PACKAGE_luci-app-store=y
-          CONFIG_PACKAGE_luci-app-passwall2=y
-          CONFIG_PACKAGE_xray-core=y
-          CONFIG_PACKAGE_hysteria=y
-          CONFIG_PACKAGE_trojan-plus=y
-          CONFIG_PACKAGE_sing-box=y
-          EOF
-          make oldconfig
+          cd openwrt
+          
+          # 添加 iStore feed 源
+          echo "src-git istore https://github.com/linkease/istore.git;main" >> feeds.conf.default
+          
+          # 添加 PassWall2 feed 源
+          echo "src-git passwall2 https://github.com/xiaorouji/openwrt-passwall2.git" >> feeds.conf.default
+          
+          # 更新并安装 feeds
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
-      - name: 下载依赖
-        working-directory: /workdir/openwrt
+      - name: 配置构建选项 (选择 iStore 和 PassWall2)
         run: |
-          make download -j8
+          cd openwrt
+          
+          # 启用 iStore 相关组件
+          echo "CONFIG_PACKAGE_istore=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-istore=y" >> .config
+          echo "CONFIG_PACKAGE_istore-sync=y" >> .config
+          
+          # 启用 PassWall2
+          echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
+          echo "CONFIG_PACKAGE_passwall2=y" >> .config
+          
+          # 可选: 添加 PassWall2 的核心依赖
+          echo "CONFIG_PACKAGE_xray-core=y" >> .config
+          echo "CONFIG_PACKAGE_v2ray-geoip=y" >> .config
+          echo "CONFIG_PACKAGE_v2ray-geosite=y" >> .config
+          
+          # 确保生成 APK 格式的软件包 (OpenWrt 25.12 默认使用 APK)
+          echo "CONFIG_APK=y" >> .config
+          echo "CONFIG_OPKG=n" >> .config
+          
+          # 下载软件包源代码
+          make download -j$(nproc)
 
-      - name: 开始编译
-        working-directory: /workdir/openwrt
+      - name: 编译软件包
         run: |
-          make -j$(nproc) || make -j1 V=s
+          cd openwrt
+          # 编译 iStore 和 PassWall2 软件包
+          make package/istore/compile -j$(nproc)
+          make package/luci-app-istore/compile -j$(nproc)
+          make package/luci-app-passwall2/compile -j$(nproc)
+          
+          # 编译 PassWall2 的核心依赖 (如有需要)
+          make package/xray-core/compile -j$(nproc)
+          make package/v2ray-geoip/compile -j$(nproc)
+          make package/v2ray-geosite/compile -j$(nproc)
 
-      # ==================== 输出文件 ====================
-      - name: 上传固件包
+      - name: 提取 APK 文件和内核模块
+        run: |
+          mkdir -p artifacts
+          cd openwrt
+          
+          # 查找并复制生成的 APK 文件到 artifacts 目录
+          find bin/packages/ -name "*.apk" -exec cp {} ../artifacts/ \;
+          
+          # 复制内核模块 (如果存在)
+          if [ -d "bin/targets" ]; then
+            find bin/targets/ -name "*.apk" -exec cp {} ../artifacts/ \;
+            find bin/targets/ -name "kmod-*.apk" -exec cp {} ../artifacts/ \;
+          fi
+          
+          # 生成软件包列表
+          cd ../artifacts
+          ls -la *.apk > packages_list.txt
+          cat packages_list.txt
+
+      - name: 打包所有 APK 文件
+        run: |
+          cd artifacts
+          tar -czvf openwrt-istore-passwall2-${{ github.event.inputs.target_arch }}.tar.gz *.apk packages_list.txt
+
+      - name: 上传构建产物到 Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            artifacts/openwrt-istore-passwall2-*.tar.gz
+          body: |
+            ## OpenWrt 25.12 软件包编译 (APK 格式)
+            
+            ### 包含的软件包:
+            - iStore 应用商店
+            - PassWall2 代理工具
+            - 核心依赖 (Xray-core, GeoIP 等)
+            
+            ### 目标架构: ${{ github.event.inputs.target_arch }}
+            
+            ### 安装说明:
+            1. 解压 tar.gz 文件
+            2. 使用 `apk add --allow-untrusted *.apk` 命令安装软件包
+            3. 或上传到路由器后使用 LuCI 界面安装
+            
+            > 注意: 由于 OpenWrt 25.12 默认使用 APK 包管理器，请确保使用 `apk` 命令而非 `opkg`
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 上传构建产物到 Artifacts (保留)
         uses: actions/upload-artifact@v4
         with:
-          name: openwrt-firmware
-          path: /workdir/openwrt/bin/targets/mediatek/filogic/*
-
-      - name: 上传插件APK + 内核包
-        uses: actions/upload-artifact@v4
-        with:
-          name: openwrt-25.12-plugins-apk
-          path: /workdir/openwrt/bin/packages/aarch64_cortex-a53/
+          name: openwrt-istore-passwall2-${{ github.event.inputs.target_arch }}
+          path: artifacts/openwrt-istore-passwall2-*.tar.gz
+          retention-days: 90
