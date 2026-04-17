@@ -8,6 +8,105 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: 检查分支
+        uses: actions/checkout@v4
+
+      - name: 释放磁盘空间
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile /mnt/swapfile
+          sudo docker image prune -a -f || true
+          sudo apt-get -y purge firefox clang* ghc* google* llvm* mono* mongo* mysql* php*
+          sudo apt-get -y autoremove --purge
+          sudo apt-get clean
+          df -Th
+
+      - name: 编译环境
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tar build-essential flex bison cmake g++ gawk gcc-multilib g++-multilib gettext git libfuse-dev libncurses5-dev libssl-dev python3 python3-pip python3-ply python3-distutils python3-pyelftools rsync unzip zlib1g-dev file wget subversion patch upx-ucl autoconf automake curl asciidoc binutils bzip2 lib32gcc-s1 libc6-dev-i386 uglifyjs msmtp texinfo libreadline-dev libglib2.0-dev xmlto libelf-dev libtool autopoint antlr3 gperf ccache swig coreutils haveged scons libpython3-dev rename qemu-utils
+          sudo apt-get clean
+          git config --global user.name 'GitHub Actions' && git config --global user.email 'noreply@github.com'
+          sudo timedatectl set-timezone Asia/Shanghai
+          sudo mkdir -p /workdir
+          chmod 777 /workdir
+          df -Th
+
+      - name: 设置环境变量
+        run: |
+          echo "REPO_URL=https://github.com/shiyu1314/openwrt-source" >> $GITHUB_ENV
+          echo "DEVICE=cmcc_rax3000m-emmc" >> $GITHUB_ENV
+
+      - name: 克隆源代码
+        working-directory: /workdir
+        run: |
+          git clone --depth=1 $REPO_URL openwrt
+
+      - name: 切换分支
+        working-directory: /workdir/openwrt
+        run: |
+          _release_tag=$(git tag --sort=taggerdate --list 'v25.*' | tail -1)
+          git checkout $_release_tag
+
+      - name: 添加插件源
+        working-directory: /workdir/openwrt
+        run: |
+          echo "src-git istore https://github.com/linkease/istore" >> feeds.conf.default
+          echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall-packages" >> feeds.conf.default
+          echo "src-git passwall2 https://github.com/xiaorouji/openwrt-passwall2" >> feeds.conf.default
+
+      - name: 更新 feeds
+        working-directory: /workdir/openwrt
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 配置插件
+        working-directory: /workdir/openwrt
+        run: |
+          make defconfig
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_luci-app-store=y
+          CONFIG_PACKAGE_luci-app-passwall2=y
+          CONFIG_PACKAGE_xray-core=y
+          CONFIG_PACKAGE_hysteria=y
+          CONFIG_PACKAGE_trojan-plus=y
+          CONFIG_PACKAGE_sing-box=y
+          EOF
+          make oldconfig
+
+      - name: 下载依赖
+        working-directory: /workdir/openwrt
+        run: |
+          make download -j8
+
+      - name: 开始编译
+        working-directory: /workdir/openwrt
+        run: |
+          make -j$(nproc) || make -j1 V=s
+
+      # ==================== 输出文件 ====================
+      - name: 上传固件包
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-firmware
+          path: /workdir/openwrt/bin/targets/mediatek/filogic/*
+
+      - name: 上传插件APK + 内核包
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-25.12-plugins-apk
+          path: /workdir/openwrt/bin/packages/aarch64_cortex-a53/name: apk2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 检查分支
         uses: actions/checkout@v6
 
       - name: 释放磁盘空间
