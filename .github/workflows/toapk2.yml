@@ -1,25 +1,16 @@
-name: Convert V2rayA to APK
+# 此工作流用于从 v2rayA 的官方软件源自动下载并转换其 OpenWrt IPK 包为 APK 格式
+name: Convert v2rayA IPK to APK
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:  # 支持手动触发
     inputs:
       custom_ipk_url:
-        description: '自定义 V2rayA IPK 文件的 URL（可选）'
+        description: '自定义 IPK 文件的 URL（可选）'
         required: false
-        type: string
-      openwrt_version:
-        description: '目标 OpenWrt 版本（默认 23.05，V2rayA 官方最新稳定适配版）'
-        required: false
-        default: '23.05'
-        type: string
-      target_arch:
-        description: '目标架构（默认 aarch64_cortex-a53，适配 RAX3000M）'
-        required: false
-        default: 'aarch64_cortex-a53'
         type: string
 
 permissions:
-  contents: write  # 允许推送代码到仓库
+  contents: write  # 允许工作流推送转换后的 APK 文件到仓库
 
 jobs:
   convert-v2raya:
@@ -31,62 +22,60 @@ jobs:
 
       - name: Download converter script
         run: |
+          # 下载 IPK 转 APK 的转换脚本
           curl -L -o openwrt-ipk2apk.py https://raw.githubusercontent.com/rychly/openwrt-ipk2apk/main/openwrt-ipk2apk.py
           chmod +x openwrt-ipk2apk.py
 
-      # 自动获取 V2rayA 官方最新 IPK 链接并下载
-      - name: Fetch latest V2rayA IPK packages
+      # --- 主要修改：从 v2rayA 官方源获取最新 IPK 包 ---
+      - name: Fetch latest v2rayA IPK packages
         run: |
           set -e
-          # 构建 V2rayA 官方 SourceForge 源地址（默认 23.05 + aarch64_cortex-a53）
-          BASE_URL="https://sourceforge.net/projects/v2raya/files/openwrt/${{ github.event.inputs.openwrt_version }}/${{ github.event.inputs.target_arch }}/"
+          # 定义 v2rayA 官方软件包的源地址 (SourceForge)
+          BASE_URL="https://downloads.sourceforge.net/project/v2raya/openwrt/aarch64_generic/"
           
-          # 定义需要下载的 V2rayA 核心包名（前缀匹配）
+          # 定义需要下载的包名及其文件名前缀
           declare -A PKG_PREFIXES=(
             ["v2raya"]="v2raya_"
             ["luci-app-v2raya"]="luci-app-v2raya_"
             ["luci-i18n-v2raya-zh-cn"]="luci-i18n-v2raya-zh-cn_"
-            ["xray-core"]="xray-core_"          # 主流首选代理内核
-            ["sing-box"]="sing-box_"            # 轻量备选代理内核
-            ["v2ray-geoip"]="v2ray-geoip_"      # IP 规则库
-            ["v2ray-geosite"]="v2ray-geosite_"  # 域名规则库
+            ["xray-core"]="xray-core_"  # v2rayA 官方推荐的核心，提供更好的 tproxy 支持
           )
           
           mkdir -p v2raya_ipks
           
-          # 获取 SourceForge 目录页索引，提取所有 .ipk 文件名
-          echo "正在获取 V2rayA 官方源文件列表..."
-          # SourceForge 目录页解析：提取带 .ipk 后缀的文件名
-          curl -s "$BASE_URL" | grep -oE 'href="/projects/v2raya/files/[^"]+\.ipk' | sed 's|.*/||' > ipk_list.txt
+          # 获取源站的目录列表
+          echo "正在获取官方源文件列表..."
+          # 使用 --list-only 参数获取 SourceForge 的目录列表，并提取 .ipk 文件名
+          curl -s --list-only "${BASE_URL}" | grep -oE '[^"]+\.ipk' | sort -u > ipk_list.txt
           
           for pkg in "${!PKG_PREFIXES[@]}"; do
             prefix="${PKG_PREFIXES[$pkg]}"
-            # 找出匹配前缀的最新版本（按版本号排序，取最后一个）
+            # 在列表中匹配并选择最新版本（按版本号排序，取最后一个）
             latest=$(grep "^${prefix}" ipk_list.txt | sort -V | tail -n1)
             if [ -z "$latest" ]; then
-              echo "警告：未找到匹配前缀 '$prefix' 的 IPK 文件，跳过该包"
-              continue
+              echo "错误：未找到匹配前缀 '$prefix' 的 IPK 文件"
+              exit 1
             fi
             echo "下载 $pkg -> $latest"
-            # 构建完整下载链接（SourceForge 直接下载格式）
-            full_url="${BASE_URL}${latest}/download"
-            curl -L -o "v2raya_ipks/${pkg}.ipk" "$full_url"
+            # 下载找到的最新 IPK 文件
+            curl -L -o "v2raya_ipks/${pkg}.ipk" "${BASE_URL}${latest}"
             
             # 验证下载的文件是否为有效的 gzip 压缩包
             if ! file "v2raya_ipks/${pkg}.ipk" | grep -q "gzip compressed data"; then
-              echo "错误：下载的文件无效（不是 gzip 格式），请检查链接：$full_url"
+              echo "错误：下载的文件无效（不是 gzip 格式），请检查链接：${BASE_URL}${latest}"
               exit 1
             fi
             echo "✓ $pkg 下载并验证通过"
           done
+      # -------------------------------------------------
 
-      # 可选：支持手动输入自定义 V2rayA IPK URL
-      - name: Download custom V2rayA IPK from URL (if provided)
+      # 可选：支持手动输入自定义 IPK URL
+      - name: Download custom IPK from URL (if provided)
         if: github.event.inputs.custom_ipk_url != ''
         run: |
           mkdir -p custom_ipks
-          curl -L -o custom_ipks/custom_v2raya.ipk "${{ github.event.inputs.custom_ipk_url }}"
-          if ! file "custom_ipks/custom_v2raya.ipk" | grep -q "gzip compressed data"; then
+          curl -L -o custom_ipks/custom.ipk "${{ github.event.inputs.custom_ipk_url }}"
+          if ! file "custom_ipks/custom.ipk" | grep -q "gzip compressed data"; then
             echo "警告：自定义 IPK 不是有效的 gzip 文件"
           fi
 
@@ -121,7 +110,7 @@ jobs:
                   mv "${base}.apk" apk_output/
                 fi
               fi
-            fi
+            done
           fi
 
       # 将生成的 APK 复制到仓库根目录下的 apk/v2raya/ 文件夹
@@ -138,16 +127,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 只添加 apk/v2raya 目录的变更
           git add apk/v2raya/
           
-          # 检查是否有实际变更
           if git diff --cached --quiet; then
             echo "没有检测到 APK 变更，跳过提交"
           else
-            git commit -m "Update V2rayA APK packages from workflow run #${{ github.run_id }} [skip ci]"
-            # 拉取远程最新变更并 rebase，避免推送冲突
+            git commit -m "Update v2rayA APK packages from workflow run #${{ github.run_id }} [skip ci]"
             git pull --rebase --autostash origin ${{ github.ref_name }} || true
-            # 推送到当前分支
             git push origin HEAD:${{ github.ref_name }}
           fi
