@@ -24,7 +24,7 @@ jobs:
           curl -L -o openwrt-ipk2apk.py https://raw.githubusercontent.com/rychly/openwrt-ipk2apk/main/openwrt-ipk2apk.py
           chmod +x openwrt-ipk2apk.py
 
-      # 使用您提供的固定 URL 下载四个 IPK 包
+      # 使用您提供的固定 URL 下载五个 IPK 包（已包含 ca-bundle）
       - name: Download v2rayA IPK packages from provided URLs
         run: |
           mkdir -p v2raya_ipks
@@ -35,6 +35,7 @@ jobs:
             ["v2raya"]="https://sourceforge.net/projects/v2raya/files/openwrt/aarch64_cortex-a53/v2raya_2.2.7.4-r1_aarch64_cortex-a53.ipk/download?format=raw"
             ["xray-core"]="https://sourceforge.net/projects/v2raya/files/openwrt/aarch64_cortex-a53/xray-core_25.10.15-r1_aarch64_cortex-a53.ipk/download?format=raw"
             ["ca-certificates"]="https://sourceforge.net/projects/v2raya/files/openwrt/aarch64_cortex-a53/ca-certificates_20250419-r1_all.ipk/download?format=raw"
+            ["ca-bundle"]="https://sourceforge.net/projects/v2raya/files/openwrt/aarch64_cortex-a53/ca-bundle_20250419-r1_all.ipk/download?format=raw"
           )
           
           for pkg in "${!PKG_URLS[@]}"; do
@@ -112,7 +113,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "没有检测到 APK 变更，跳过提交"
           else
-            git commit -m "Update v2rayA APK packages from fixed URLs [skip ci]"
+            git commit -m "Update v2rayA APK packages from fixed URLs (including ca-bundle) [skip ci]"
             git pull --rebase --autostash origin ${{ github.ref_name }} || true
             git push origin HEAD:${{ github.ref_name }}
           fi
