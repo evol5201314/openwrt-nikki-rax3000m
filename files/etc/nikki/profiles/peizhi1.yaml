@@ -26,8 +26,8 @@ allow-lan: true
 bind-address: 0.0.0.0
 # 运行模式：按规则分流
 mode: rule
-# 启用geoip/geosite数据库模式
-geodata-mode: true
+# 启用geoip/geosite数据库模式 false为使用新版meatb数据库
+geodata-mode: false
 # 日志级别 error只输出错误，干净不刷屏
 log-level: error
 # 开启IPv6支持
@@ -464,8 +464,8 @@ rule-providers:
 # 全局顶级：geox数据库（强制代理拉取）
 # ==============================
 geox-url:
-  geoip: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geoip.metadb
-  geosite: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geosite.metadb
+  geoip: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+  geosite: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.metadb
   proxy: PROXY                 # 规则下载走代理分组
   proxy-respect-rules: true    # 下载请求遵循全局分流
   lazy: true                   # 启动不立即拉取，延迟加载
@@ -521,7 +521,6 @@ rules:
   - GEOSITE,microsoft@cn,DOMESTIC          # 微软国内服务走国内分组
   - GEOSITE,apple-cn,DOMESTIC              # 苹果国内生态服务走国内分组
   - GEOSITE,steam@cn,DOMESTIC              # Steam国区相关走国内分组
-  - GEOSITE,game@cn,DOMESTIC               # 国产游戏相关域名统一走国内分组
   - GEOSITE,biliintl,PROXY                 # B站国际版强制走代理
   - GEOSITE,youtube,PROXY                  # 油管全系域名批量走代理
   - GEOSITE,google,PROXY                   # 谷歌全系域名批量走代理
@@ -535,7 +534,6 @@ rules:
   - GEOIP,private,DIRECT,no-resolve       # 私有内网IP直连
   - GEOIP,telegram,PROXY                   # TG专属IP强制代理
   - GEOIP,JP,PROXY                         # 日本IP走代理
-  - DST-PORT,80/8080/443/8443,PROXY        # 常用网页端口走代理
   - GEOIP,CN,DOMESTIC                      # 中国大陆IP → 国内组
   - GEOIP,!CN,PROXY                        # 境外IP → 代理组  
 routing:
