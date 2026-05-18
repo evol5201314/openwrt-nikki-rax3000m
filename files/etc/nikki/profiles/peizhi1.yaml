@@ -521,7 +521,7 @@ rules:
   - GEOSITE,microsoft@cn,DOMESTIC          # 微软国内服务走国内分组
   - GEOSITE,apple-cn,DOMESTIC              # 苹果国内生态服务走国内分组
   - GEOSITE,steam@cn,DOMESTIC              # Steam国区相关走国内分组
-  - GEOSITE,game@cn,DOMESTIC     # 国产游戏相关域名统一走国内分组
+  - GEOSITE,game@cn,DOMESTIC               # 国产游戏相关域名统一走国内分组
   - GEOSITE,biliintl,PROXY                 # B站国际版强制走代理
   - GEOSITE,youtube,PROXY                  # 油管全系域名批量走代理
   - GEOSITE,google,PROXY                   # 谷歌全系域名批量走代理
