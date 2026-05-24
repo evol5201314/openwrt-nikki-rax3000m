@@ -572,5 +572,5 @@ rules:
   - GEOIP,!CN,PROXY                        # 境外IP → 代理组  
 routing:
   complete-fallback: false       # 强制遍历完所有规则条目，命中规则停止
-  default-action: direct        # 无匹配规则流量默认优先本地直连
-  default-proxy: PROXY          # 直连访问失败自动切换至外网代理组
+  default-action: DOMESTIC       # 无匹配规则流量默认优先本地直连
+  default-proxy: PROXY           # 直连访问失败自动切换至外网代理组
