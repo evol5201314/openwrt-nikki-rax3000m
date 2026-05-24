@@ -9,6 +9,8 @@
 #  直连地址https://ghproxy.net/https://raw.githubusercontent.com/evol5201314/openwrt-nikki-rax3000m/master/files/etc/nikki/profiles/peizhi1.yaml
 #  最新更新时间2026/05/18-1
 # ==============================
+# 日常模式
+# ==============================
 #  Nikki 完整配置 开启ipv6+广告过滤+故障转移+多机场+tun nat优化联机游戏体验
 # 出现网站不能访问未被代理请在360行rules加上该网址
 # 出现网站跳转反诈宣传禁止访问/dns污染请在180行设置
@@ -54,9 +56,9 @@ tun:
   enable: true               # 必须开启：用于识别进程名
   stack: system              # 使用系统网络栈：最轻量、0额外延迟
 # stack: gvisor              # 核心：用户态独立栈，抗丢包强 游戏460切换这个模式 缺点增加延迟3-5ms
-  auto-route: false          # 最核心：不修改系统路由 → 不走TUN的流量完全裸连，0延迟
-  auto-detect-interface: false  # 关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定
-  dns-hijack: []             # 关闭DNS劫持：彻底去掉1~3ms解析延迟，回归原生DNS
+  auto-route: false          # 最核心：flase不修改系统路由 → 不走TUN的流量完全裸连，0延迟 /全局流量过虚拟网卡
+  auto-detect-interface: false  # flase关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定  /自动识别多网卡
+  dns-hijack: []             # 关闭DNS劫持：留空彻底去掉1~3ms解析延迟，回归原生DNS  /强制劫持所有DNS请求（防泄漏）  
   
 # 网页控制后台地址+密码
 # 192.168.1.2:9090
