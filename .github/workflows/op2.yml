@@ -1,4 +1,4 @@
-name: OpenWRT  No Default WiFi Password
+name: OpenWRT No Default WiFi Password
 
 on:
   repository_dispatch:
