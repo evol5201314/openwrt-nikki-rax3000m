@@ -56,8 +56,8 @@ tun:
   enable: true                       # 必须开启：用于识别进程名
 # stack: system                      # 使用系统网络栈：最轻量、0额外延迟
   stack: gvisor                      # 核心：用户态独立栈，抗丢包强 游戏460切换这个模式 缺点增加延迟3-5ms
-  auto-route: flase                   # 最核心：flase不修改系统路由 → 不走TUN的流量完全裸连，0延迟 /全局流量过虚拟网卡
-  auto-detect-interface: flase       # flase关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定  /自动识别多网卡
+  auto-route: false                   # 最核心：false不修改系统路由 → 不走TUN的流量完全裸连，0延迟 /全局流量过虚拟网卡
+  auto-detect-interface: false       # false关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定  /自动识别多网卡
   dns-hijack: [any:53]               # 关闭DNS劫持：留空彻底去掉1~3ms解析延迟，回归原生DNS  /强制劫持所有DNS请求（防泄漏）
   
 # 网页控制后台地址+密码
