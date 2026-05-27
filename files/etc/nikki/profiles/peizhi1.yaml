@@ -28,7 +28,7 @@ bind-address: 0.0.0.0
 # 运行模式：按规则分流
 mode: rule
 # 启用geoip/geosite数据库模式 false为使用新版meatb数据库
-geodata-mode: false
+geodata-mode: true
 geo-auto-update: true       # 开启地理库自动更新
 geo-update-interval: 23    # 更新周期，单位小时，23小时轮询一次
 # 日志级别 error只输出错误，干净不刷屏
@@ -51,14 +51,14 @@ profile:
   rule-providers-direct: false        # 保留，兼容OpenClash
 
 
-# 开启TUN模式(不用全局劫持，避免游戏乱跑代理)
+# 开启TUN模式(不用全局劫持，避免游戏乱跑代理)  关闭游戏模式时到180行关闭fakeip 开启redir 模式
 tun:
-  enable: true               # 必须开启：用于识别进程名
-  stack: system              # 使用系统网络栈：最轻量、0额外延迟
-# stack: gvisor              # 核心：用户态独立栈，抗丢包强 游戏460切换这个模式 缺点增加延迟3-5ms
-  auto-route: false          # 最核心：flase不修改系统路由 → 不走TUN的流量完全裸连，0延迟 /全局流量过虚拟网卡
-  auto-detect-interface: false  # flase关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定  /自动识别多网卡
-  dns-hijack: []             # 关闭DNS劫持：留空彻底去掉1~3ms解析延迟，回归原生DNS  /强制劫持所有DNS请求（防泄漏）  
+  enable: true                       # 必须开启：用于识别进程名
+  stack: system                      # 使用系统网络栈：最轻量、0额外延迟
+#  stack: gvisor                     # 核心：用户态独立栈，抗丢包强 游戏460切换这个模式 缺点增加延迟3-5ms
+  auto-route: flase                   # 最核心：flase不修改系统路由 → 不走TUN的流量完全裸连，0延迟 /全局流量过虚拟网卡
+  auto-detect-interface: flase       # flase关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定  /自动识别多网卡
+  dns-hijack: []               # 关闭DNS劫持：留空彻底去掉1~3ms解析延迟，回归原生DNS  /强制劫持所有DNS请求（防泄漏）
   
 # 网页控制后台地址+密码
 # 192.168.1.2:9090
@@ -76,7 +76,7 @@ proxy-providers:
     timeout: 10000     # 单次10秒超时，到点直接放弃，不拖
     interval: 7200          # 2小时自动更新订阅
     user-agent: "Clash/1.18.0"
-    retries: 3          # 最多重试 3 次
+    retries: 1          # 最多重试 1 次
     retry-delay: 60000  # 重试等待 60 秒，不疯狂刷屏
     async: false        # 关闭异步并行加载 → 改成串行逐个加载
 
@@ -88,7 +88,7 @@ proxy-providers:
     timeout: 10000     # 单次10秒超时，到点直接放弃，不拖
     interval: 7200
     user-agent: "Clash/1.18.0"
-    retries: 3          # 最多重试 3 次
+    retries: 1          # 最多重试 1 次
     retry-delay: 60000  # 重试等待 60 秒，不疯狂刷屏
     async: false        # 关闭异步并行加载 → 改成串行逐个加载
 
@@ -99,7 +99,7 @@ proxy-providers:
     timeout: 10000     # 单次10秒超时，到点直接放弃，不拖
     interval: 7200
     user-agent: "Clash/1.18.0"
-    retries: 3          # 最多重试 3 次
+    retries: 1          # 最多重试 1 次
     retry-delay: 60000  # 重试等待 60 秒，不疯狂刷屏
     async: false        # 关闭异步并行加载 → 改成串行逐个加载
 
@@ -110,7 +110,7 @@ proxy-providers:
     timeout: 10000     # 单次10秒超时，到点直接放弃，不拖
     interval: 7200
     user-agent: "Clash/1.18.0"
-    retries: 3          # 最多重试 3 次
+    retries: 1          # 最多重试 1 次
     retry-delay: 60000  # 重试等待 60 秒，不疯狂刷屏
     async: false        # 关闭异步并行加载 → 改成串行逐个加载
 
@@ -195,10 +195,10 @@ dns:
 # 开启fakeip模式取消注释即可          慢但准确
 # 开启Mixed模式启用注释即可           两者兼顾 
 # 开启redir-host DNS模式 全部注释   快但可能漏 
-# 当前为redir-host DNS模式
+# 当前为fakeip DNS模式
 # ==============================
-# enhanced-mode: fake-ip       # 开启Fake-IP 防DNS劫持+拦截广告
-# fake-ip-range: 198.18.0.1/16 # 虚拟IP网段，固定不用改
+#  enhanced-mode: fake-ip       # 开启Fake-IP 防DNS劫持+拦截广告
+#  fake-ip-range: 198.18.0.1/16 # 虚拟IP网段，固定不用改
 # ==============================
 # enhanced-mode: mixed          # 开启mixed模式 防DNS劫持+拦截广告
 # fake-ip-range: 198.18.0.0/16  # 虚拟IP网段，固定不用改
@@ -211,12 +211,28 @@ dns:
   cache-algorithm: arc     # 最优缓存淘汰算法（自动清老记录，推荐）
   dns-preload: true         # 域名预解析缓存
 # ==============================
-  # 调用你拉取的 dns-filter 规则（Fake-IP 白名单生效）
+  # 切换为白名单模式/黑名单 白名单为写了的走虚拟ip  黑名单为不写的走虚拟ip  走虚拟ip才拿实现精准不漏的分流 
+  fake-ip-filter-mode: whitelist          # 切换为虚拟ip白名单   列表内的走虚拟ip 
+  #  fake-ip-filter-mode: blacklist       # 切换为虚拟ip黑名单   列表内的不走虚拟ip
+  # 虚拟ip白/黑名单 黑名单为不写的走虚拟ip  走虚拟ip才拿实现精准不漏的分流 
   fake-ip-filter:
-    - geosite:private
-    - "+.lan"
-    - "+.local"
-
+    - "geosite:gfw"                           # 国外网络走虚拟ip
+    - "geosite:category-entertainment-cn"     # 国内娱乐
+    - "geosite:category-wiki-cn"              # 国内百科
+    - "geosite:category-speedtest"            # 测速网站
+    - "geosite:category-social-media-cn"      # 国内社交媒体
+    - "geosite:category-netdisk-cn"           # 国内网盘
+    - "geosite:category-mobile-repair"        # 手机维修/服务
+    - "geosite:category-food-cn"              # 国内美食/外卖
+    - "geosite:category-electronic-cn"        # 国内电商/数码
+    - "geosite:category-companies"            # 企业官网
+    - "geosite:category-automobile-cn"        # 国内汽车
+    - "geosite:category-ai-cn"                # 国内AI服务
+    - "geosite:category-android-app-download" # 应用下载
+    - "geosite:category-cdn-cn"               # 国内CDN
+    - "geosite:category-forums"               # 国内论坛
+    - "geosite:category-logistics-cn"         # 国内物流
+    - "geosite:category-web-archive"          # 网络存档        
   # 开启/关闭Geosite启动全量预加载（解决重启CPU/内存爆满）
   # 优点：重启不卡、不爆内存、低负载运行
   # 缺点：首次访问国内域名极轻微延迟，二次访问恢复极速
@@ -233,8 +249,8 @@ dns:
     - 119.29.29.29
   # 国外域名备用DNS
   fallback:
-    - https://dns.google/dns-query
     - https://cloudflare-dns.com/dns-query
+    - https://dns.google/dns-query
     - 8.8.8.8          # 备用纯IP DNS，更稳定
     - 1.1.1.1
   # 国内IP强制走国内DNS
@@ -254,249 +270,72 @@ dns:
   # 新增打不开的域名直接在这里添加
   # ==============================================
   nameserver-policy:
-    # 所有大陆域名强制国内纯净DNS，防劫持防污染
-    "geosite:cn": [223.5.5.5, 119.29.29.29]
-    # 规则订阅域名强制境外DNS解析（解决拉取规则失败）
-    "raw.gitmirror.com": [8.8.8.8]
-    "raw.githubusercontent.com": [8.8.8.8]
-    "cdn.jsdelivr.net": [1.1.1.1]
-    "nodesfree.github.io": [1.1.1.1]
+    # 苹果全套走国内解析    
+    "geosite:apple-cn": [223.5.5.5, 119.29.29.29]   
     # 腾讯全系游戏专属国内纯净DNS
-    "geosite:tencent": [223.5.5.5,119.29.29.29]
+    "geosite:tencent": [223.5.5.5, 119.29.29.29]
     # Steam平台全系走国内DNS解析
-    "geosite:steam": [223.5.5.5, 114.114.114.114]
-   # Telegram全系防污染
-    "*.telegram.org": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    "*.telegram.me": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    "*.t.me": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
+    "geosite:steam": [223.5.5.5, 119.29.29.29]
+    # 游戏走国内解析       
+    "geosite:category-games": [223.5.5.5, 119.29.29.29]
+    # 国服游戏加速器/更新/下载 直连国内DNS
+    "geosite:category-game-accelerator-cn": [223.5.5.5, 119.29.29.29]
+    # 游戏下载 直连国内DNS
+    "geosite:category-game-platforms-download": [223.5.5.5, 119.29.29.29]
+    # ==================== 国外全站 防污染 DNS ====================
+    # Telegram全系防污染
+    "geosite:telegram": ["https://cloudflare-dns.com/dns-query","https://dns.google/dns-query"]
     # GitHub全系解决时好时坏DNS污染
-    "*.github.com": ["https://dns.google/dns-query", "8.8.8.8"]
-    "*.githubusercontent.com": ["https://dns.google/dns-query", "8.8.8.8"]
-    "*.github.io": ["https://dns.google/dns-query", "8.8.8.8"]
-    "gist.githubusercontent.com": ["https://dns.google/dns-query", "8.8.8.8"]
+    "geosite:github": ["https://dns.google/dns-query", "https://cloudflare-dns.com/dns-query"]
     # Google全家防污染
-    "*.google.com": ["https://dns.google/dns-query", "8.8.8.8"]
-    "*.googleapis.com": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    "*.gstatic.com": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    # 推特X平台
-    "*.x.com": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    "*.twitter.com": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    # 社交语音平台
-    "*.discord.com": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    "*.discord.gg": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    # 常用开源CDN站点
-    "*.jsdelivr.net": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
-    "*.cdnjs.cloudflare.com": ["https://cloudflare-dns.com/dns-query", "1.1.1.1"]
+    "geosite:google": ["https://dns.google/dns-query", "https://cloudflare-dns.com/dns-query"]
     # YouTube 全套强制境外DoH 稳出IPv6
-    "*.youtube.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.youtu.be": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.googlevideo.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.ytimg.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.youtube-nocookie.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
+    "geosite:youtube": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
     # Facebook/Instagram 全系强制境外 DoH 拿 IPv6
-    "*.facebook.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.fbcdn.net": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.fbsbx.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.fbworkmail.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.instagram.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.cdninstagram.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.meta.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # Cloudflare 全站
-    "*.cloudflare.com": ["https://dns.google/dns-query", "https://cloudflare-dns.com/dns-query"]
-    # 直播平台 Twitch
-    "*.twitch.tv": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.ttvnw.net": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 音乐 Spotify
-    "*.spotify.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 微软全系
-    "*.microsoft.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.outlook.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.live.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 维基百科
-    "*.wikipedia.org": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 亚马逊
-    "*.amazon.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 苹果官网/服务
-    "*.apple.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 奈飞 Netflix
-    "*.netflix.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.nflxvideo.net": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 国际论坛 Reddit
-    "*.reddit.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 开源社区 StackOverflow
-    "*.stackoverflow.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 浏览器官网 Mozilla
-    "*.mozilla.org": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 雅虎
-    "*.yahoo.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 领英职场
-    "*.linkedin.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 必应搜索
-    "*.bing.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 迪士尼流媒体
-    "*.disneyplus.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 葫芦视频Hulu
-    "*.hulu.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 易贝电商
-    "*.ebay.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # Paypal支付
-    "*.paypal.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 游戏平台 Steam
-    "*.steampowered.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.steamcommunity.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 索尼
-    "*.sony.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 英伟达
-    "*.nvidia.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 开源源码 GitLab
-    "*.gitlab.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 网盘 OneDrive
-    "*.onedrive.live.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 绘图设计 Behance
-    "*.behance.net": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 影视资讯 IMDB
-    "*.imdb.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 游戏类
-    "*.epicgames.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.origin.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.riotgames.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.playstation.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 办公工具
-    "*.zoom.us": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.slack.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.notion.so": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.canva.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 资讯媒体
-    "*.cnn.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.bbc.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.nytimes.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 学习技术
-    "*.udemy.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.coursera.org": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.linux.org": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 网盘云服务
-    "*.dropbox.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.mega.nz": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 出行生活
-    "*.uber.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.airbnb.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    # 数码测评
-    "*.theverge.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
-    "*.gsmarena.com": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
+    "geosite:meta": ["https://dns.google/dns-query","https://cloudflare-dns.com/dns-query"]
+    # TikTok养号 → 强制走代理DNS
+    "geosite:tiktok": "proxy"
 # ==============================
-    # 自定义白名单站点强制解析知道ip
+    # 兜底备用，万一有漏网的海外域名
+    "geosite:china-list": [223.5.5.5, 119.29.29.29]
+    "geosite:geolocation-!cn": ["https://cloudflare-dns.com/dns-query","https://dns.google/dns-query"]
+# ==============================
+    # 自定义白名单站点强制解析指定ip
     # 格式示例 前面网址 后面解析ip
-    # "xxx.com": 223.5.5.5
-    # "*.xxx.com": 223.5.5.5
+    # "xxx.com": [223.5.5.5, 119.29.29.29]
+    # "*.xxx.com": [223.5.5.5, 119.29.29.29]
 # ==============================
     # 自用dns解析白名单
-    "ipin.io": 223.5.5.5
-    "*.ipin.io": 223.5.5.5
+    "ipin.io": [223.5.5.5, 119.29.29.29]
+    "*.ipin.io": [223.5.5.5, 119.29.29.29]
 # ==============================
 # 远程规则订阅库
 # GitHub 官方原生地址
 # 统一 delay-check: 60 秒 → 开机先缓存/节点/测速，再拉规则
 # 全部 lazy: true 延迟懒加载，避免启动卡顿
 # ==============================
-rule-providers:
-  # 广告黑名单规则：屏蔽广告域名
-  reject:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/reject.txt"
-    path: ./ruleset/reject.yaml
-    interval: 86400          # 24小时更新一次
-    proxy: PROXY              # 规则下载走代理分组
-    proxy-respect-rules: true # 下载请求遵循全局分流
-    lazy: true                # 启动不立即拉取，延迟加载
-    delay-check: 300           # 开机300秒后再拉取此规则
-    dns-respect-rules: true   # 规则解析遵守分流规则
+#rule-providers:
+#  # 内网私有地址规则：匹配私有域名直连
+#  private:
+#    type: http
+#    behavior: domain
+#    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/private.txt"
+#    path: ./ruleset/private.txt
+#    interval: 86400          # 24小时更新一次
+#    proxy: PROXY              # 规则下载走代理分组
+#    proxy-respect-rules: true # 下载请求遵循全局分流
+#    lazy: true                # 启动不立即拉取，延迟加载
+#    delay-check: 240           # 开机240秒后再拉取此规则
+#    dns-respect-rules: true   # 规则解析遵守分流规则
 
-  # 国外网站规则：匹配境外域名走代理
-  proxy:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/proxy.txt"
-    path: ./ruleset/proxy.yaml
-    interval: 86400          # 24小时更新一次
-    proxy: PROXY              # 规则下载走代理分组
-    proxy-respect-rules: true # 下载请求遵循全局分流
-    lazy: true                # 启动不立即拉取，延迟加载
-    delay-check: 120           # 开机60秒后再拉取此规则
-    dns-respect-rules: true   # 规则解析遵守分流规则
-
-  # 国内网站规则：匹配中国大陆域名直连
-  direct:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt"
-    path: ./ruleset/direct.yaml
-    interval: 86400          # 24小时更新一次
-    proxy: PROXY              # 规则下载走代理分组
-    proxy-respect-rules: true # 下载请求遵循全局分流
-    lazy: true                # 启动不立即拉取，延迟加载
-    delay-check: 60           # 开机60秒后再拉取此规则
-    dns-respect-rules: true   # 规则解析遵守分流规则
-
-  # 内网私有地址规则：匹配私有域名直连
-  private:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/private.txt"
-    path: ./ruleset/private.yaml
-    interval: 86400          # 24小时更新一次
-    proxy: PROXY              # 规则下载走代理分组
-    proxy-respect-rules: true # 下载请求遵循全局分流
-    lazy: true                # 启动不立即拉取，延迟加载
-    delay-check: 240           # 开机60秒后再拉取此规则
-    dns-respect-rules: true   # 规则解析遵守分流规则
-
-  # 局域网IP段规则：匹配局域网IP直连
-  lancidr:
-    type: http
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/lancidr.txt"
-    path: ./ruleset/lancidr.yaml
-    interval: 86400          # 24小时更新一次
-    proxy: PROXY              # 规则下载走代理分组
-    proxy-respect-rules: true # 下载请求遵循全局分流
-    lazy: true                # 启动不立即拉取，延迟加载
-    delay-check: 240           # 开机60秒后再拉取此规则
-    dns-respect-rules: true   # 规则解析遵守分流规则
-
-  # 中国大陆IP段规则：匹配大陆IP直连
-  cncidr:
-    type: http
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt"
-    path: ./ruleset/cncidr.yaml
-    interval: 86400          # 24小时更新一次
-    proxy: PROXY              # 规则下载走代理分组
-    proxy-respect-rules: true # 下载请求遵循全局分流
-    lazy: true                # 启动不立即拉取，延迟加载
-    delay-check: 180           # 开机60秒后再拉取此规则
-    dns-respect-rules: true   # 规则解析遵守分流规则
-
-  # 中国大陆域名规则集 - 匹配国内主流域名走国内分组
-  cn:
-    behavior: domain
-    interval: 86400
-    path: ./provider/rule-set/cn_domain.yaml
-    type: http
-    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.yaml"
-    proxy: DIRECT                # 拉取国内规则直连下载，不走代理
-    proxy-respect-rules: true    # 遵循全局分流策略
-    lazy: true                   # 延迟懒加载，减少启动占用
-    delay-check: 360              # 开机360秒后再自动更新规则
-    dns-respect-rules: true      # 域名解析遵循分流规则
 # ==============================
 # 全局顶级：geox数据库
 # ==============================
 geox-url:
-#  geoip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
-#  geosite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
-  geoip: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
-  geosite: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"  
+#  geoip: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+#  geosite: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+  geoip: "https://testingcf.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat"
+  geosite: "https://testingcf.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat"  
 
 # ==============================
 # 最终分流执行顺序规则
@@ -514,62 +353,47 @@ rules:
 # ==============================================
 #  系统规则 分流顺序从上往下依次判断
 # ==============================================
-  - RULE-SET,private,DIRECT              # 内网地址直连
-  - RULE-SET,lancidr,DIRECT              # 局域网IP直连
+  - GEOSITE,private,DIRECT               # 内网地址直连
+  - GEOIP,private,DIRECT,no-resolve      # 局域网IP直连
   - DOMAIN-SUFFIX,lan,DIRECT             # 系统网络禁止代理
   - DOMAIN-SUFFIX,local,DIRECT           # 系统网络禁止代理
-  - RULE-SET,reject,REJECT               # 拦截所有广告域名
-  - GEOSITE,private,DIRECT               # 私有内网域名强制本地直连不走代理  
   - GEOSITE,category-ads-all,REJECT      # 全局所有广告域名统一拦截屏蔽
 # ==============================================  
  #【手动白名单网站】不想网站走代理/强制走代理加这里
-  - IP-CIDR,91.108.0.0/16,PROXY,no-resolve    # telegram强制代理
-  - IP-CIDR,149.154.0.0/16,PROXY,no-resolve  # telegram强制代理
-  # Telegram网页域名强制不走本地解析直扔代理
-  - DOMAIN-SUFFIX,telegram.org,PROXY,no-resolve
-  - DOMAIN-SUFFIX,telegram.me,PROXY,no-resolve
-  - DOMAIN-SUFFIX,t.me,PROXY,no-resolve
-  # GitHub全系强制走代理杜绝间歇性打不开
-  - DOMAIN-SUFFIX,github.com,PROXY,no-resolve
-  - DOMAIN-SUFFIX,githubusercontent.com,PROXY,no-resolve
-  - DOMAIN-SUFFIX,github.io,PROXY,no-resolve
-  # Google全系强制代理
-  - DOMAIN-SUFFIX,google.com,PROXY,no-resolve
-  - DOMAIN-SUFFIX,gstatic.com,PROXY,no-resolve
-  # 推特X平台
-  - DOMAIN-SUFFIX,twitter.com,PROXY,no-resolve
-  - DOMAIN-SUFFIX,x.com,PROXY,no-resolve
+ #  - IP-CIDR,91.108.0.0/16,PROXY,no-resolve     # telegram强制代理
+ #  - IP-CIDR,149.154.0.0/16,PROXY,no-resolve    # telegram强制代理
+  - DOMAIN-SUFFIX,steampowered.com,PROXY         # steam商店代理
+  - DOMAIN-SUFFIX,steamcommunity.com,PROXY       # steam社区代理
+  - DOMAIN-SUFFIX,ipin.io,DOMESTIC               # ip网站直连防污染
+# ==============================================  
+# 游戏大陆节点直连 用户组
+  - GEOSITE,steam@cn,DOMESTIC                                # steam直连
+  - GEOSITE,category-games,DOMESTIC                          # 游戏直连  
+  - GEOSITE,category-games@cn,DOMESTIC                       # 游戏直连
+  - GEOSITE,category-game-accelerator-cn,DOMESTIC            # 加速器直连
+  - GEOSITE,category-game-platforms-download,DOMESTIC        # 游戏下载直连
 # ==============================================
- #【dns防污染】网站打不开写这里 解决跳反诈中心 多人举报页面
- # DOMAIN等于单独一个完整域名 DOMAIN-SUFFIX等于后缀域名
-  - DOMAIN-SUFFIX,ipin.io,DOMESTIC        # ip网站直连防污染
-# ==============================================
-  #  订阅规则分流
-  - RULE-SET,proxy,PROXY                 # 国外网站走代理
-  - RULE-SET,direct,DOMESTIC             # 国内网站走国内组
-# ==============================================
-#  GEOSITE域名备用分流【域名层二次兜底补漏】
-# 前置手写规则+订阅规则未命中时，进入此层域名库批量匹配分流
-# ==============================================
+  # 国内专属域名直连 系统组
+  - GEOSITE,apple-cn,DOMESTIC              # 苹果直连
+  - GEOSITE,google-cn,DOMESTIC             # 谷歌国内直连
+  - GEOSITE,win-update,DOMESTIC            # Windows 更新直连
   - GEOSITE,onedrive,DOMESTIC              # OneDrive国内服务走国内分组
   - GEOSITE,microsoft@cn,DOMESTIC          # 微软国内服务走国内分组
-  - GEOSITE,apple-cn,DOMESTIC              # 苹果国内生态服务走国内分组
-  - GEOSITE,steam@cn,DOMESTIC              # Steam国区相关走国内分组
-  - GEOSITE,biliintl,PROXY                 # B站国际版强制走代理
-  - GEOSITE,youtube,PROXY                  # 油管全系域名批量走代理
-  - GEOSITE,google,PROXY                   # 谷歌全系域名批量走代理
-  - GEOSITE,twitter,PROXY                  # 推特X平台域名批量走代理
-  - GEOSITE,pixiv,PROXY                    # Pixiv插画站强制走代理
+# ==============================================
+  - GEOSITE,china-list,DOMESTIC            #系统组 所有可识别大陆域名，统一归入国内分组               
+# ==============================================  
+  # 国外专属域名直连 用户组
   - GEOSITE,category-scholar-!cn,PROXY     # 海外学术科研类域名全部走代理
-  - GEOSITE,geolocation-!cn,PROXY          # 非大陆通用境外域名统一走代理
-  - GEOSITE,cn,DOMESTIC                    # 所有可识别大陆域名，统一归入国内分组  
+# ==============================================  
+  - GEOSITE,gfw,PROXY                       #系统组 仅代理常用国外网站    
+#  - GEOSITE,geolocation-!cn,PROXY          #系统组 非大陆通用境外域名统一全代理
 # ==============================================
 # IP精准分流
-  - GEOIP,private,DIRECT,no-resolve        # 私有内网IP直连
-  - GEOIP,telegram,PROXY                   # TG专属IP强制代理
-  - GEOIP,JP,PROXY                         # 日本IP走代理
-  - GEOIP,CN,DOMESTIC                      # 中国大陆IP → 国内组
-  - GEOIP,!CN,PROXY                        # 境外IP → 代理组  
+  - GEOIP,private,DIRECT,no-resolve         # 私有内网IP直连
+  - GEOIP,telegram,PROXY                    # TG专属IP强制代理
+#  - GEOIP,JP,PROXY                         # 日本IP走代理
+  - GEOIP,CN,DOMESTIC                       # 中国大陆IP → 国内组
+#  - GEOIP,!CN,PROXY                        # 境外IP → 代理组  
 routing:
   complete-fallback: false       # 强制遍历完所有规则条目，命中规则停止
   default-action: DOMESTIC       # 无匹配规则流量默认优先本地直连
