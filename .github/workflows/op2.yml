@@ -152,9 +152,8 @@ jobs:
 
     - name: 加载自定义配置
       run: |
-        [ -e files ] && cp -rf files $SOURCE_NAME/
+        [ -e files ] && mv files $SOURCE_NAME/files
         rm -f $SOURCE_NAME/files/etc/config/wireless
-       # [ -e files ] && mv files $SOURCE_NAME/files
         cat <<EOF >>$SOURCE_NAME/.config
         CONFIG_TARGET_mediatek=y
         CONFIG_TARGET_mediatek_filogic=y
