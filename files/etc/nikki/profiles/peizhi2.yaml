@@ -202,6 +202,7 @@ dns:
 # ==============================
   enhanced-mode: fake-ip       # 开启Fake-IP 防DNS劫持+拦截广告
   fake-ip-range: 198.18.0.1/16 # 虚拟IP网段，固定不用改
+  fake-ip-range6: fdfe:dcba:9876::1/64  # 虚拟IP网段，固定不用改  
 # ==============================
 # enhanced-mode: mixed          # 开启mixed模式 防DNS劫持+拦截广告
 # fake-ip-range: 198.18.0.0/16  # 虚拟IP网段，固定不用改
