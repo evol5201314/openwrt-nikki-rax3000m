@@ -68,7 +68,6 @@ secret: "VZwfEX69"
 mixed-port: 9091
 redir-port: 9092
 unified-delay: true
-tcp-concurrent: true
 # ==============================
 # 节点订阅组
 # ==============================
