@@ -64,7 +64,7 @@ tun:
 # 网页控制后台地址+密码
 # 192.168.1.2:9090
 external-controller: 0.0.0.0:9090
-secret: "VZwfEX69"
+secret: "998613"
 mixed-port: 9091
 redir-port: 9092
 unified-delay: true
