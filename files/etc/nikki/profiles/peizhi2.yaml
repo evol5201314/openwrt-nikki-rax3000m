@@ -60,6 +60,7 @@ tun:
 # 只玩国内游戏 可设置flase 搭配syestem栈 国内游戏原生延迟  tun功能相当于无效 玩国外游戏 必须设置flase 且fakeip白名单 把游戏放进虚拟ip 改为黑名单模式 
   auto-detect-interface: false       # false关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定  /自动识别多网卡
   dns-hijack: [any:53, tcp://any:53] # 关闭DNS劫持：留空彻底去掉1~3ms解析延迟，回归原生DNS  /强制劫持所有DNS请求（防泄漏）
+# dns-hijack: []                     # 开全局监听 route  接口需设置53any53  不开route的话 留空 二选一注释 route跟hijack一般搭配使用 开全局写接口 不开全局不写接口
 # 排除底层/内网IPv6，解决TUN路由冲突、防止公网v6断流/切v4
   inet6-route-exclude-address:
     - fe80::/10   # 网卡链路本地地址，保障底层通信
