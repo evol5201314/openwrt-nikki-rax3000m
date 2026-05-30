@@ -9,7 +9,7 @@
 #  直连地址https://ghproxy.net/https://raw.githubusercontent.com/evol5201314/openwrt-nikki-rax3000m/master/files/etc/nikki/profiles/peizhi1.yaml
 #  最新更新时间2026/05/18-1
 # ==============================
-# 日常模式
+# 日常模式 
 # ==============================
 #  Nikki 完整配置 开启ipv6+广告过滤+故障转移+多机场+tun nat优化联机游戏体验
 # 出现网站不能访问未被代理请在360行rules加上该网址
@@ -55,16 +55,24 @@ profile:
 tun:
   enable: true                       # 必须开启：用于识别进程名
   stack: system                      # 使用系统网络栈：最轻量、0额外延迟
-#  stack: gvisor                     # 核心：用户态独立栈，抗丢包强 游戏460切换这个模式 缺点增加延迟3-5ms
-  auto-route: false                   # 最核心：false不修改系统路由 → 不走TUN的流量完全裸连，0延迟 /全局流量过虚拟网卡
+# stack: gvisor                      # 核心：用户态独立栈，抗丢包强 游戏460切换这个模式 缺点增加延迟3-5ms
+  auto-route: false                   # 最核心：false不修改系统路由 → 不走TUN的流量完全裸连，0延迟 /全局流量过虚拟网卡 游戏抗丢包必须true 日常不玩游戏可以false
+# 只玩国内游戏 可设置flase 搭配syestem栈 国内游戏原生延迟  tun功能相当于无效 玩国外游戏 必须设置flase 且fakeip白名单 把游戏放进虚拟ip 改为黑名单模式 
   auto-detect-interface: false       # false关闭自动网卡扫描：省掉0.1ms后台CPU开销，极致稳定  /自动识别多网卡
-  dns-hijack: []               # 关闭DNS劫持：留空彻底去掉1~3ms解析延迟，回归原生DNS  /强制劫持所有DNS请求（防泄漏）
+# dns-hijack: [any:53, tcp://any:53] # 关闭DNS劫持：留空彻底去掉1~3ms解析延迟，回归原生DNS  /强制劫持所有DNS请求（防泄漏）
+  dns-hijack: []                     # 开全局监听 route  接口需设置53any53  不开route的话 留空 二选一注释 route跟hijack一般搭配使用 开全局写接口 不开全局不写接口
+# 排除底层/内网IPv6，解决TUN路由冲突、防止公网v6断流/切v4
+  inet6-route-exclude-address:
+    - fe80::/10   # 网卡链路本地地址，保障底层通信
+    - ::1/128     # 本机IPv6回环地址
+    - fc00::/7    # 内网ULA，留=内网快；删=内网走TUN变慢 公网根本没有 fc00::/7 的网站，全世界公网路由都不播这段，ISP 也会过滤
   
 # 网页控制后台地址+密码
 # 192.168.1.2:9090
 external-controller: 0.0.0.0:9090
-secret: "VZwfEX69"
-
+secret: "998613"
+redir-port: 7891
+unified-delay: true
 # ==============================
 # 节点订阅组
 # ==============================
@@ -190,6 +198,8 @@ dns:
 # 注意删除注释后listen 的首字母l需要跟下面ipv6的i在同一列 不能往前往后移动位置
 # ==============================
 #  listen: 127.0.0.1:53       #注释掉为关闭 53监听 
+  listen: '[::]:1053'         #混入设置代理设置ipv4 ipv6监听禁止取消勾选 将53端口转发至1053端口 
+  prefer-h3: true             # DoH 优先 HTTP/3
 # ==============================
 # 网站解析方法 
 # 开启fakeip模式取消注释即可          慢但准确
@@ -197,13 +207,14 @@ dns:
 # 开启redir-host DNS模式 全部注释   快但可能漏 
 # 当前为fakeip DNS模式
 # ==============================
-#  enhanced-mode: fake-ip       # 开启Fake-IP 防DNS劫持+拦截广告
-#  fake-ip-range: 198.18.0.1/16 # 虚拟IP网段，固定不用改
+  enhanced-mode: fake-ip       # 开启Fake-IP 防DNS劫持+拦截广告
+  fake-ip-range: 198.18.0.1/16 # 虚拟IP网段，固定不用改
+  fake-ip-range6: fdfe:dcba:9876::1/64  # 虚拟IP网段，固定不用改  
 # ==============================
 # enhanced-mode: mixed          # 开启mixed模式 防DNS劫持+拦截广告
 # fake-ip-range: 198.18.0.0/16  # 虚拟IP网段，固定不用改
 # ==============================
-  enhanced-mode: redir-host     # 开启redir模式 dns最低防护延迟最低
+#  enhanced-mode: redir-host     # 开启redir模式 dns最低防护延迟最低
 # ==============================  
 # dns缓存 
   cache-size: 2000        # 最多存2000条域名解析记录
@@ -232,7 +243,7 @@ dns:
     - "geosite:category-cdn-cn"               # 国内CDN
     - "geosite:category-forums"               # 国内论坛
     - "geosite:category-logistics-cn"         # 国内物流
-    - "geosite:category-web-archive"          # 网络存档        
+    - "geosite:category-web-archive"          # 网络存档    
   # 开启/关闭Geosite启动全量预加载（解决重启CPU/内存爆满）
   # 优点：重启不卡、不爆内存、低负载运行
   # 缺点：首次访问国内域名极轻微延迟，二次访问恢复极速
