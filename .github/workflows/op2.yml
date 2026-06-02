@@ -153,7 +153,7 @@ jobs:
     - name: 加载自定义配置
       run: |
         [ -e files ] && mv files $SOURCE_NAME/files
-        rm -f $SOURCE_NAME/files/etc/config/wireless
+        rm -f $SOURCE_NAME/files/etc/config/wireless        
         cat <<EOF >>$SOURCE_NAME/.config
         CONFIG_TARGET_mediatek=y
         CONFIG_TARGET_mediatek_filogic=y
@@ -204,7 +204,7 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
     - name: 上传固件到Releases
-      uses: softprops/action-gh-release@v2.6.1
+      uses: softprops/action-gh-release@v3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -219,7 +219,7 @@ jobs:
           默认密码：无
 
     - name: 清理Releases
-      uses: dev-drprasad/delete-older-releases@v0.3.4
+      uses: gzk47/delete-older-releases@v0.3.5
       with:
         keep_latest: 2
         delete_tags: true
