@@ -356,6 +356,11 @@ geox-url:
 # 和上面DNS白名单搭配使用，完美兼容Fake-IP
 # ==============================================
 rules:
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
 # ==============================================
  #【忽略广告网站域名白名单】         不想网站过滤广告加这里
  # - DOMAIN等于单独一个完整域名 DOMAIN-SUFFIX等于后缀域名
