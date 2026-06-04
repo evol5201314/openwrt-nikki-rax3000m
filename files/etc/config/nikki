@@ -2,7 +2,7 @@
 config status 'status'
 
 config config 'config'
-	option enabled '1'
+	option enabled '0'
 	option profile 'file:peizhi2.yaml'
 	option start_delay '0'
 	option scheduled_restart '0'
