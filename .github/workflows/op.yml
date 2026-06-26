@@ -7,7 +7,7 @@ on:
       OP_IP:
         description: '静态IP地址'     
         required: false
-        default: '192.168.2.1' 
+        default: '192.168.1.2' 
         type: string
       OP_author:
         description: '定制作者'     
@@ -17,7 +17,7 @@ on:
       CUSTOM_PLUGINS:
         description: '自定义插件名称，用空格分隔'
         required: false
-        default: 'luci-theme-m3e luci-app-ttyd luci-app-diskman luci-app-momo'
+        default: 'luci-app-nikki luci-theme-aurora luci-app-ttyd luci-app-diskman luci-app-irqbalance luci-app-filemanager luci-app-autoreboot'
         type: string
 
 env:
@@ -114,20 +114,20 @@ jobs:
         esac
         echo "release_tag=$_release_tag" >> $GITHUB_ENV  
         
-    - name: 取回缓存 staging_dir
-      uses: actions/cache@v5
-      with:
-        path: |
-          ${{ matrix.source }}/staging_dir
-        key: ${{ matrix.source }}-toolchain-cache
-        restore-keys: |
-          ${{ matrix.source }}-toolchain-cache
+    # 【禁用工具链缓存，使用原版无缓存逻辑】
+    #- name: 取回缓存 staging_dir
+    #  uses: actions/cache@v5
+    #  with:
+    #    path: |
+    #      ${{ matrix.source }}/staging_dir
+    #    key: ${{ matrix.source }}-toolchain-cache
+    #    restore-keys: |
+    #      ${{ matrix.source }}-toolchain-cache
             
     - name: patch修补
       run: |
         set -x
         cd $SOURCE_NAME
-        find ./staging_dir/ -name '*' -exec touch {} \; >/dev/null 2>&1
         ./scripts/feeds update -a
         cd .. 
         [ -e patch ] && cp -rf patch/diy/*.patch $SOURCE_NAME
@@ -141,6 +141,13 @@ jobs:
         cd ..
         [ -e patch ] && cp -rf patch/nginx/luci.locations $SOURCE_NAME/feeds/packages/net/nginx/files-luci-support
         [ -e patch ] && cp -rf patch/nginx/uci.conf.template $SOURCE_NAME/feeds/packages/net/nginx-util/files
+
+    # 你的原版新增：清理 Go 编译缓存
+    - name: 清理 Go 编译缓存
+      run: |
+        cd $SOURCE_NAME
+        rm -rf tmp/ build_dir/ dl/ staging_dir/host/go*
+        find . -name "go.mod" -o -name "go.sum" | xargs rm -f 2>/dev/null || true
 
     - name: 加载自定义配置
       run: |
@@ -212,7 +219,7 @@ jobs:
     - name: 清理Releases
       uses: gzk47/delete-older-releases@v0.3.5
       with:
-        keep_latest: 1
+        keep_latest: 2
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
