@@ -1,33 +1,36 @@
 #!/bin/bash
 
-function git_sparse_clone() {
-  branch="$1" repourl="$2" && shift 2
-  git clone --depth=1 -b $branch --single-branch --filter=blob:none --sparse $repourl
-  repodir=$(echo $repourl | awk -F '/' '{print $(NF)}')
-  cd $repodir && git sparse-checkout set $@
-  mv -f $@ ../
-  cd .. && rm -rf $repodir
-}
-
+# 闲置未使用函数直接删除，精简脚本
 set -x
 
-# kenrel Vermagic
+# kernel Vermagic
 sed -ie 's/^\(.\).*vermagic$/\1cp $(TOPDIR)\/.vermagic $(LINUX_DIR)\/.vermagic/' include/kernel-defaults.mk
 grep HASH target/linux/generic/kernel-6.12 | awk -F'HASH-' '{print $2}' | awk '{print $1}' | md5sum | awk '{print $1}' > .vermagic
 
+# 拉取 shiyu1314 MTK专用插件源
 git clone -b packages --depth 1 --single-branch https://github.com/shiyu1314/openwrt-feeds package/xd
 git clone -b porxy --depth 1 --single-branch https://github.com/shiyu1314/openwrt-feeds package/porxy
 
+# 拉取微信推送 luci-app-wechatpush（增加目录清理，避免重复克隆报错）
+[ -d package/luci-app-wechatpush ] && rm -rf package/luci-app-wechatpush
+git clone --depth=1 https://github.com/tty228/luci-app-wechatpush package/luci-app-wechatpush
+
+# iStore软件中心
+[ -d package/istore ] && rm -rf package/istore
+git clone --depth=1 https://github.com/linkease/istore package/istore
+
+# 删除官方feeds重复冲突插件，统一使用shiyu第三方版本
 rm -rf feeds/luci/applications/{luci-app-dockerman,luci-app-samba4,luci-app-aria2,luci-app-diskman}
 rm -rf feeds/packages/net/{samba4,v2ray-geodata,mosdns,sing-box,aria2,ariang,adguardhome}
 
-# drop attendedsysupgrade
+# 移除自动升级组件
 sed -i '/luci-app-attendedsysupgrade/d' \
     feeds/luci/collections/luci-nginx/Makefile \
     feeds/luci/collections/luci-ssl-openssl/Makefile \
     feeds/luci/collections/luci-ssl/Makefile \
     feeds/luci/collections/luci/Makefile
-    
+
+# 全局替换uhttpd为luci-nginx后台
 sed -i 's/+uhttpd /+luci-nginx /g' feeds/luci/collections/luci/Makefile
 sed -i 's/+uhttpd-mod-ubus //' feeds/luci/collections/luci/Makefile
 sed -i 's/+uhttpd /+luci-nginx /g' feeds/luci/collections/luci-light/Makefile
@@ -37,10 +40,10 @@ sed -i 's/+uhttpd +uhttpd-mod-ubus /+luci-nginx /g' feeds/packages/net/wg-instal
 sed -i '/uhttpd-mod-ubus/d' feeds/luci/collections/luci-light/Makefile
 sed -i 's/+luci-nginx \\$/+luci-nginx/' feeds/luci/collections/luci-light/Makefile
 
+# 应用luci目录下patch
 pushd feeds/luci || exit 1
 for patch in *.patch; do
     [ -f "$patch" ] || continue
-    
     echo "Applying $patch ..."
     patch -p1 --no-backup-if-mismatch < "$patch" || {
         echo "ERROR: Failed to apply $patch"
@@ -50,91 +53,78 @@ for patch in *.patch; do
 done
 popd
 
-for patch in *.patch; do
+# 应用源码根目录patch（修复多余popd报错隐患）
+for patch in ./*.patch; do
     [ -f "$patch" ] || continue
-    
-    echo "Applying $patch ..."
+    echo "Applying root patch $patch ..."
     patch -p1 --no-backup-if-mismatch < "$patch" || {
-        echo "ERROR: Failed to apply $patch"
-        popd
+        echo "ERROR: Failed to apply root patch $patch"
         exit 1
     }
 done
 
-
-# rust
+# 升级Rust版本
 RUST_VERSION=1.95.0
 RUST_HASH=62b67230754da642a264ca0cb9fc08820c54e2ed7b3baba0289876d4cdb48c08
 sed -ri "s/(PKG_VERSION:=)[^\"]*/\1$RUST_VERSION/;s/(PKG_HASH:=)[^\"]*/\1$RUST_HASH/" feeds/packages/lang/rust/Makefile
 
+# 替换底层工具为sbwml适配25.12修复版
 # fstools
 rm -rf package/system/fstools
 git clone https://github.com/sbwml/package_system_fstools -b openwrt-25.12 package/system/fstools
 # util-linux
 rm -rf package/utils/util-linux
 git clone https://github.com/sbwml/package_utils_util-linux -b openwrt-25.12 package/utils/util-linux
-
 # nghttp3
 rm -rf feeds/packages/libs/nghttp3
 git clone https://github.com/sbwml/package_libs_nghttp3 package/libs/nghttp3
-
 # ngtcp2
 rm -rf feeds/packages/libs/ngtcp2
 git clone https://github.com/sbwml/package_libs_ngtcp2 package/libs/ngtcp2
-
-# curl - fix passwall `time_pretransfer` check
+# curl
 rm -rf feeds/packages/net/curl
 git clone https://github.com/sbwml/feeds_packages_net_curl feeds/packages/net/curl
-
-# nginx - latest version
+# nginx
 rm -rf feeds/packages/net/nginx
 git clone https://github.com/sbwml/feeds_packages_net_nginx feeds/packages/net/nginx -b openwrt-25.12
 sed -i 's/procd_set_param stdout 1/procd_set_param stdout 0/g;s/procd_set_param stderr 1/procd_set_param stderr 0/g' feeds/packages/net/nginx/files/nginx.init
-
-# nginx - ubus
+# nginx ubus优化
 sed -i 's/ubus_parallel_req 2/ubus_parallel_req 6/g' feeds/packages/net/nginx/files-luci-support/60_nginx-luci-support
 sed -i '/ubus_parallel_req/a\        ubus_script_timeout 300;' feeds/packages/net/nginx/files-luci-support/60_nginx-luci-support
-
-# nginx-util
+# nginx-util清理多余模板
 sed -i '/\/etc\/nginx\/uci.conf.template/d' feeds/packages/net/nginx-util/Makefile
 
-# uwsgi - fix timeout
+# uwsgi性能&日志优化
 sed -i '$a cgi-timeout = 600' feeds/packages/net/uwsgi/files-luci-support/luci-*.ini
 sed -i '/limit-as/c\limit-as = 5000' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
-# disable error log
 sed -i "s/procd_set_param stderr 1/procd_set_param stderr 0/g" feeds/packages/net/uwsgi/files/uwsgi.init
-
-# uwsgi - performance
 sed -i 's/threads = 1/threads = 2/g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
 sed -i 's/processes = 3/processes = 4/g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
 sed -i 's/cheaper = 1/cheaper = 2/g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
 
-# rpcd - fix timeout
+# rpcd rpc超时延长
 sed -i 's/option timeout 30/option timeout 60/g' package/system/rpcd/files/rpcd.config
 sed -i 's#20) \* 1000#60) \* 1000#g' feeds/luci/modules/luci-base/htdocs/luci-static/resources/rpc.js
 
-# luci-compat - remove extra line breaks from description
+# 清理luci多余换行
 sed -i '/<br \/>/d' feeds/luci/modules/luci-compat/luasrc/view/cbi/full_valuefooter.htm
 
-
-#golang 26.x
+# Golang 26.x新版
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
 
+# 同步全部feeds源码
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
+# ttyd免密root登录
 sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
 
-
+# 自定义系统banner与版本信息
 sudo rm -rf package/base-files/files/etc/banner
-
 sed -i "s/%D %V %C/%D %V $(TZ=UTC-8 date +%Y.%m.%d)/" package/base-files/files/etc/openwrt_release
-
 sed -i "s/%R/by $OP_author/" package/base-files/files/etc/openwrt_release
-
 date=$(date +"%Y-%m-%d")
-
 
 echo "                                                    " >> package/base-files/files/etc/banner
 echo "  _______                     ________        __" >> package/base-files/files/etc/banner
