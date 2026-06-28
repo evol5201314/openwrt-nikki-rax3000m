@@ -11,14 +11,6 @@ grep HASH target/linux/generic/kernel-6.12 | awk -F'HASH-' '{print $2}' | awk '{
 git clone -b packages --depth 1 --single-branch https://github.com/shiyu1314/openwrt-feeds package/xd
 git clone -b porxy --depth 1 --single-branch https://github.com/shiyu1314/openwrt-feeds package/porxy
 
-# 拉取微信推送 luci-app-wechatpush（增加目录清理，避免重复克隆报错）
-[ -d package/luci-app-wechatpush ] && rm -rf package/luci-app-wechatpush
-git clone --depth=1 https://github.com/tty228/luci-app-wechatpush package/luci-app-wechatpush
-
-# iStore软件中心
-[ -d package/istore ] && rm -rf package/istore
-git clone --depth=1 https://github.com/linkease/istore package/istore
-
 # 删除官方feeds重复冲突插件，统一使用shiyu第三方版本
 rm -rf feeds/luci/applications/{luci-app-dockerman,luci-app-samba4,luci-app-aria2,luci-app-diskman}
 rm -rf feeds/packages/net/{samba4,v2ray-geodata,mosdns,sing-box,aria2,ariang,adguardhome}
