@@ -1,0 +1,8 @@
+config command
+	option name '启动python面板/访问192.168.1.2:5000'
+	option command 'python3 /root/scripts/app.py > /dev/null 2>&1 &'
+
+config command
+	option name '推送消息'
+	option command 'python3 /root/scripts/main.py'
+
