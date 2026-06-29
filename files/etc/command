@@ -1,0 +1,4 @@
+#!/bin/sh
+# 执行python恢复脚本
+python3 /root/scripts/restore_command.py
+exit 0
