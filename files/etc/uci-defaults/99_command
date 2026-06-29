@@ -1,4 +1,10 @@
 #!/bin/sh
-# 执行python恢复脚本
-python3 /root/scripts/restore_command.py
+# 等待系统初始化完成，避免文件未挂载
+sleep 3
+# 多重校验：python3存在 + 脚本存在 + 配置文件存在
+if command -v python3 >/dev/null 2>&1; then
+    if [ -f "/root/scripts/restore_command.py" ] && [ -f "/etc/custom/command" ]; then
+        python3 /root/scripts/restore_command.py
+    fi
+fi
 exit 0
