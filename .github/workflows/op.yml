@@ -153,6 +153,7 @@ jobs:
     - name: 加载自定义配置
       run: |
         [ -e files ] && mv files $SOURCE_NAME/files
+        chmod +x $SOURCE_NAME/files/etc/uci-defaults/99_command
         cat <<EOF >>$SOURCE_NAME/.config
         CONFIG_TARGET_mediatek=y
         CONFIG_TARGET_mediatek_filogic=y
