@@ -33,7 +33,7 @@ STATUS_FILE = "/tmp/script_status.json"
 HISTORY_FILE = "/tmp/script_history.json"
 
 # ========== 同步框默认内容（仅作为默认值，修改不会自动保存） ==========
-tongbukuang = "https://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@github.com/evol5201314/exetest"
+tongbukuang = "https://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11@github.com/evol5201314/exetest"
 
 def init_files():
     os.makedirs(SCRIPTS_DIR, exist_ok=True)
