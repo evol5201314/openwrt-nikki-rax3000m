@@ -7,6 +7,14 @@ config command
 	option command 'python3 /root/scripts/extract_command.py'
 
 config command
+    option name '清理路由器内存'
+    option command 'sync; echo 3 > /proc/sys/vm/drop_caches'
+
+config command
+    option name '清理插件下载包'
+    option command 'apk cache purge'
+
+config command
 	option name '启动python面板/访问192.168.1.2:5000'
 	option command 'python3 /root/scripts/app.py > /dev/null 2>&1 &'
 
