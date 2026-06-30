@@ -17,6 +17,15 @@ config command
 
 
 config command
+	option name '更新脚本清单'
+	option command 'python3 /root/scripts/sync_github.py'
+
+config command
+    option name '查看脚本清单'
+    option command 'ls /root/scripts/*.[pP][yY]'
+
+
+config command
 	option name '推送消息'
 	option command 'python3 /root/scripts/main.py'
 
