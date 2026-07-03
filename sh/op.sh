@@ -109,10 +109,8 @@ git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/l
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 ##################################################
-# 2. 将 luci-app-commands 菜单从【系统】移动至【服务】分类
+# 1. 将 luci-app-commands 菜单从【系统】移动至【服务】分类
 sed -i 's/{"admin", "system", "commands"}/{"admin", "services", "commands"}/g' feeds/luci/applications/luci-app-commands/luasrc/controller/admin/commands.lua
-# 2. luci-app-nikki 从【网络】→【服务】分类
-sed -i 's/{"admin", "network", "nikki"}/{"admin", "services", "nikki"}/g' feeds/luci/applications/luci-app-nikki/luasrc/controller/admin/nikki.lua
 ##################################################
 # ttyd免密root登录
 sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
