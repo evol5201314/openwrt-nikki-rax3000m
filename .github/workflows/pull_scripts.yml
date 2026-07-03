@@ -1,0 +1,35 @@
+name: 单独拉取远程scripts脚本
+run-name: 同步exetest仓库root/scripts
+# 手动触发，不会自动跑编译流程
+on:
+  workflow_dispatch:
+
+jobs:
+  pull-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取你自己的仓库代码
+        uses: actions/checkout@v4
+
+      - name: 稀疏克隆远程仓库，只拉root/scripts
+        run: |
+          TMP_SCR=$(mktemp -d)
+          git clone --depth 1 --no-checkout https://github.com/evol5201314/exetest.git "$TMP_SCR"
+          cd "$TMP_SCR"
+          git sparse-checkout init --cone
+          git sparse-checkout set root/scripts
+          git checkout main
+          # 创建本地存放目录 files/root/scripts
+          mkdir -p $GITHUB_WORKSPACE/files/root/scripts
+          # -n 不覆盖本地已有文件，只新增远程新文件
+          cp -nrf root/scripts/* $GITHUB_WORKSPACE/files/root/scripts/
+          cd -
+          rm -rf "$TMP_SCR"
+
+      - name: 提交拉取到的文件
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add files/root/scripts/
+          git commit -m "自动同步远程root/scripts脚本文件" || echo "无新文件无需提交"
+          git push
