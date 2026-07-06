@@ -109,9 +109,23 @@ git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/l
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 ##################################################
-# 修改 luci-app-commands 菜单归属至【服务】（针对自带 JSON 菜单文件）
+# ===== luci-app-commands：移动菜单到“服务” + 修复所有硬编码路径 =====
+
+# 1. 修改菜单 JSON（system → services）
 find feeds package -path "*/luci-app-commands/root/usr/share/luci/menu.d/luci-app-commands.json" \
   -exec sed -i 's|"admin/system/commands|"admin/services/commands|g' {} \;
+
+# 2. 修改后端 ucode 文件中可能残留的路径（通常没有，但保留以防万一）
+find feeds package -path "*/luci-app-commands/*.uc" \
+  -exec sed -i 's|admin/system/commands|admin/services/commands|g' {} \;
+
+# 3. 修改前端模板（.ut）和内嵌 JS 中的硬编码路径【关键！】
+find feeds package -path "*/luci-app-commands/*.ut" \
+  -exec sed -i "s|admin/system/commands|admin/services/commands|g" {} \;
+
+# 4. 如果编译过程中会生成独立的 commands.js，也一并修改（通常 .js 由 .ut 生成，修改 .ut 即可，但为保险）
+find feeds package -path "*/luci-app-commands/*.js" \
+  -exec sed -i "s|admin/system/commands|admin/services/commands|g" {} \;
 ##################################################
 # ttyd免密root登录
 sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
