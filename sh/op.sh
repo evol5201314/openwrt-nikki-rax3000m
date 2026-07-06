@@ -109,8 +109,9 @@ git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/l
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 ##################################################
-# 1. 将 luci-app-commands 菜单从【系统】移动至【服务】分类
-sed -i 's/{"admin", "system", "commands"}/{"admin", "services", "commands"}/g' feeds/luci/applications/luci-app-commands/luasrc/controller/admin/commands.lua
+# 修改 luci-app-commands 菜单归属至【服务】（针对自带 JSON 菜单文件）
+find feeds package -path "*/luci-app-commands/root/usr/share/luci/menu.d/luci-app-commands.json" \
+  -exec sed -i 's|"admin/system/commands|"admin/services/commands|g' {} \;
 ##################################################
 # ttyd免密root登录
 sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
