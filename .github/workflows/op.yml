@@ -163,7 +163,9 @@ jobs:
         CONFIG_PACKAGE_kmod-usb2=y
         CONFIG_PACKAGE_kmod-usb-serial=y
         CONFIG_PACKAGE_kmod-usb-serial-ch341=y
-        EOF    
+        EOF
+         # 清除.config所有行开头空格，避免missing separator报错
+        sed -i 's/^ *//' $SOURCE_NAME/.config
         
         [ -e config ] && cat config/config-common >> $SOURCE_NAME/.config
         
