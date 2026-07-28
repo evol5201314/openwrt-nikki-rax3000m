@@ -17,7 +17,7 @@ on:
       CUSTOM_PLUGINS:
         description: '自定义插件名称，用空格分隔'
         required: false
-        default: 'luci-app-nikki luci-theme-aurora luci-app-ttyd luci-app-diskman luci-app-irqbalance luci-app-filemanager luci-app-autoreboot python3-light python3-requests python3-bottle libustream-mbedtls ca-bundle ca-certificates luci-app-commands'
+        default: 'luci-app-nikki luci-theme-aurora luci-app-ttyd luci-app-diskman luci-app-irqbalance luci-app-filemanager luci-app-autoreboot python3-light python3-requests python3-bottle python3-pyserial libustream-mbedtls ca-bundle ca-certificates luci-app-commands'
         type: string
 
 env:
@@ -153,11 +153,17 @@ jobs:
       run: |
         [ -e files ] && mv files $SOURCE_NAME/files
         chmod +x $SOURCE_NAME/files/etc/uci-defaults/99_command
-        cat <<EOF >>$SOURCE_NAME/.config
+        cat <<-EOF >>$SOURCE_NAME/.config
         CONFIG_TARGET_mediatek=y
         CONFIG_TARGET_mediatek_filogic=y
         ${{ matrix.config }}
-        EOF
+        # USB CH341串口驱动全套配置
+        CONFIG_PACKAGE_kmod-usb-core=y
+        CONFIG_PACKAGE_kmod-usb-ohci=y
+        CONFIG_PACKAGE_kmod-usb2=y
+        CONFIG_PACKAGE_kmod-usb-serial=y
+        CONFIG_PACKAGE_kmod-usb-serial-ch341=y
+        EOF    
         
         [ -e config ] && cat config/config-common >> $SOURCE_NAME/.config
         
