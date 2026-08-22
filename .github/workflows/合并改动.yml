@@ -1,4 +1,4 @@
-name: 合并备份分支到 25.12
+name: 合并作者的更新到备份分支（保留你的自定义内容）
 
 on:
   workflow_dispatch
@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  merge:
+  merge-custom:
     runs-on: ubuntu-latest
     steps:
       - name: 检出仓库
@@ -16,21 +16,24 @@ jobs:
           fetch-depth: 0
           token: ${{ github.token }}
 
-      # 配置 Git 用户信息（必须）
       - name: 配置 Git 用户
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 拉取备份分支 25.12.16
+      - name: 切换到你的备份分支（25.12.16）
         run: |
-          git fetch origin 25.12.16
+          git checkout 25.12.16
 
-      - name: 合并备份分支到 25.12
+      - name: 拉取作者最新的 25.12
         run: |
-          git checkout 25.12
-          git merge origin/25.12.16 -X ours --allow-unrelated-histories -m "合并备份分支 25.12.16"
+          git fetch origin 25.12
 
-      - name: 推送合并结果
+      - name: 将作者的更新合并到你的备份分支（保留你的修改）
         run: |
-          git push origin 25.12
+          # -X ours 表示：冲突时保留你（25.12.16）的修改
+          git merge origin/25.12 -X ours --allow-unrelated-histories -m "合并作者最新更新，保留自定义修改"
+
+      - name: 将合并后的内容推送到 25.12
+        run: |
+          git push origin 25.12.16:25.12
