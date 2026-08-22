@@ -1,0 +1,40 @@
+name: 恢复并合并自定义修改
+
+on:
+  workflow_dispatch
+
+permissions:
+  contents: write
+
+env:
+  TARGET_BRANCH: "25.12"
+
+jobs:
+  restore-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出当前仓库
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: 查看 Reflog 并恢复
+        run: |
+          # 找到丢弃前的最后一个提交（例如 HEAD@{1}）
+          COMMIT_HASH=$(git reflog | grep "reset: moving to upstream" -B1 | head -1 | awk '{print $1}')
+          echo "恢复的提交哈希: $COMMIT_HASH"
+          
+          # 创建临时分支指向该提交
+          git checkout -b restore-custom $COMMIT_HASH
+
+          # 切回目标分支（现在是作者最新代码）
+          git checkout ${{ env.TARGET_BRANCH }}
+
+          # 合并临时分支（保留您的修改）
+          git merge restore-custom -X ours --allow-unrelated-histories -m "恢复自定义修改并合并上游"
+
+      - name: 推送合并结果
+        run: |
+          git push origin ${{ env.TARGET_BRANCH }}
