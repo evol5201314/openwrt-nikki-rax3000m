@@ -10,7 +10,7 @@ on:
       OP_IP:
         description: '静态IP地址'     
         required: false
-        default: '192.168.1.2'
+        default: '192.168.2.1' 
         type: string
       OP_author:
         description: '定制作者'     
@@ -20,7 +20,7 @@ on:
       CUSTOM_PLUGINS:
         description: '自定义插件名称，用空格分隔'
         required: false
-        default: 'luci-app-nikki luci-theme-aurora luci-app-ttyd luci-app-diskman luci-app-irqbalance luci-app-filemanager luci-app-autoreboot python3-light python3-requests python3-bottle python3-pyserial libustream-mbedtls ca-bundle ca-certificates luci-app-commands'
+        default: 'luci-theme-m3e luci-app-ttyd luci-app-diskman luci-app-momo'
         type: string
 
 env:
@@ -105,15 +105,14 @@ jobs:
         esac
         echo "release_tag=$_release_tag" >> $GITHUB_ENV  
         
-    # 注释掉缓存步骤
-    #- name: 取回缓存 staging_dir
-    #  uses: actions/cache@v5
-    #  with:
-    #    path: |
-    #      ${{ matrix.source }}/staging_dir
-    #    key: ${{ matrix.source }}-toolchain-cache
-    #    restore-keys: |
-    #      ${{ matrix.source }}-toolchain-cache
+    - name: 取回缓存 staging_dir
+      uses: actions/cache@v5
+      with:
+        path: |
+          ${{ matrix.source }}/staging_dir
+        key: ${{ matrix.source }}-toolchain-cache
+        restore-keys: |
+          ${{ matrix.source }}-toolchain-cache
             
     - name: patch修补
       run: |
@@ -134,30 +133,14 @@ jobs:
         [ -e patch ] && cp -rf patch/nginx/luci.locations $SOURCE_NAME/feeds/packages/net/nginx/files-luci-support
         [ -e patch ] && cp -rf patch/nginx/uci.conf.template $SOURCE_NAME/feeds/packages/net/nginx-util/files
 
-    # 新增清理 Go 编译缓存
-    - name: 清理 Go 编译缓存
-      run: |
-        cd $SOURCE_NAME
-        rm -rf tmp/ build_dir/ dl/ staging_dir/host/go*
-        find . -name "go.mod" -o -name "go.sum" | xargs rm -f 2>/dev/null || true
-
     - name: 加载自定义配置
       run: |
         [ -e files ] && mv files $SOURCE_NAME/files
-        chmod +x $SOURCE_NAME/files/etc/uci-defaults/99_command
-        cat <<-EOF >>$SOURCE_NAME/.config
+        cat <<EOF >>$SOURCE_NAME/.config
         CONFIG_TARGET_mediatek=y
         CONFIG_TARGET_mediatek_filogic=y
         ${{ matrix.config }}
-        # USB CH341串口驱动全套配置
-        CONFIG_PACKAGE_kmod-usb-core=y
-        CONFIG_PACKAGE_kmod-usb-ohci=y
-        CONFIG_PACKAGE_kmod-usb2=y
-        CONFIG_PACKAGE_kmod-usb-serial=y
-        CONFIG_PACKAGE_kmod-usb-serial-ch341=y
         EOF
-        # 清除.config所有行开头空格，避免missing separator报错
-        sed -i 's/^ *//' $SOURCE_NAME/.config
         
         [ -e config ] && cat config/config-common >> $SOURCE_NAME/.config
         
@@ -220,7 +203,7 @@ jobs:
     - name: 清理Releases
       uses: gzk47/delete-older-releases@v0.3.5
       with:
-        keep_latest: 2
+        keep_latest: 1
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
