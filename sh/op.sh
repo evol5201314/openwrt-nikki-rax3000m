@@ -1,17 +1,16 @@
 #!/bin/bash
 
-# [新增] 闲置未使用函数直接删除，精简脚本
 set -x
 
 # kenrel Vermagic
 sed -ie 's/^\(.\).*vermagic$/\1cp $(TOPDIR)\/.vermagic $(LINUX_DIR)\/.vermagic/' include/kernel-defaults.mk
 grep HASH target/linux/generic/kernel-6.12 | awk -F'HASH-' '{print $2}' | awk '{print $1}' | md5sum | awk '{print $1}' > .vermagic
 
-# [新增] 拉取 shiyu1314 MTK专用插件源
+# 拉取 shiyu1314 MTK专用插件源           改动行1 增加注释
 git clone -b packages --depth 1 --single-branch https://github.com/shiyu1314/openwrt-feeds package/xd
 git clone -b porxy --depth 1 --single-branch https://github.com/shiyu1314/openwrt-feeds package/porxy
 
-# [新增] 删除官方feeds重复冲突插件，统一使用shiyu第三方版本
+# 删除官方feeds重复冲突插件，统一使用shiyu第三方版本             改动行2 增加注释
 rm -rf feeds/luci/applications/{luci-app-dockerman,luci-app-samba4,luci-app-aria2,luci-app-diskman}
 rm -rf feeds/packages/net/{samba4,v2ray-geodata,mosdns,sing-box,aria2,ariang,adguardhome}
 
@@ -31,7 +30,6 @@ sed -i 's/+uhttpd +uhttpd-mod-ubus /+luci-nginx /g' feeds/packages/net/wg-instal
 sed -i '/uhttpd-mod-ubus/d' feeds/luci/collections/luci-light/Makefile
 sed -i 's/+luci-nginx \\$/+luci-nginx/' feeds/luci/collections/luci-light/Makefile
 
-# 应用luci目录下patch
 pushd feeds/luci || exit 1
 for patch in *.patch; do
     [ -f "$patch" ] || continue
@@ -111,6 +109,7 @@ sed -i 's#20) \* 1000#60) \* 1000#g' feeds/luci/modules/luci-base/htdocs/luci-st
 # luci-compat - remove extra line breaks from description
 sed -i '/<br \/>/d' feeds/luci/modules/luci-compat/luasrc/view/cbi/full_valuefooter.htm
 
+
 #golang 26.x
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
@@ -118,7 +117,7 @@ git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/l
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# ===== [新增开始] luci-app-commands 路径修改 =====
+# ===== 改动段落3 增加commands移动 =====
 ##################################################
 # ===== luci-app-commands：移动菜单到“服务” + 修复所有硬编码路径 =====
 
@@ -138,12 +137,11 @@ find feeds package -path "*/luci-app-commands/*.ut" \
 find feeds package -path "*/luci-app-commands/*.js" \
   -exec sed -i "s|admin/system/commands|admin/services/commands|g" {} \;
 ##################################################
-# ===== [新增结束] =====
+# ===== 改动结束 =====
 
-# [新增] ttyd免密root登录
 sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
 
-# [新增] 自定义系统banner与版本信息
+
 sudo rm -rf package/base-files/files/etc/banner
 
 sed -i "s/%D %V %C/%D %V $(TZ=UTC-8 date +%Y.%m.%d)/" package/base-files/files/etc/openwrt_release
