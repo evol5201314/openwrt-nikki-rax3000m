@@ -16,6 +16,12 @@ jobs:
           fetch-depth: 0
           token: ${{ github.token }}
 
+      # 配置 Git 用户信息（必须）
+      - name: 配置 Git 用户
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: 拉取备份分支 25.12.16
         run: |
           git fetch origin 25.12.16
