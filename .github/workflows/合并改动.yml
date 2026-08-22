@@ -6,31 +6,25 @@ on:
 permissions:
   contents: write
 
-env:
-  SOURCE_REPO: "evol5201314/openwrt-nikki-rax3000m"
-  SOURCE_BRANCH: "25.12.16"
-  TARGET_BRANCH: "25.12"
-
 jobs:
   merge:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出目标分支（25.12）
+      - name: 检出仓库
         uses: actions/checkout@v4
         with:
-          repository: ${{ env.SOURCE_REPO }}
-          ref: ${{ env.TARGET_BRANCH }}
-          token: ${{ secrets.PAT_TOKEN }}  # 需要 PAT，因为涉及跨仓库
           fetch-depth: 0
+          token: ${{ github.token }}
 
-      - name: 拉取备份分支（25.12.16）
+      - name: 拉取备份分支 25.12.16
         run: |
-          git fetch origin ${{ env.SOURCE_BRANCH }}
+          git fetch origin 25.12.16
 
-      - name: 合并备份分支（保留你的修改）
+      - name: 合并备份分支到 25.12
         run: |
-          git merge origin/${{ env.SOURCE_BRANCH }} -X ours --allow-unrelated-histories -m "合并备份分支 ${{ env.SOURCE_BRANCH }}"
+          git checkout 25.12
+          git merge origin/25.12.16 -X ours --allow-unrelated-histories -m "合并备份分支 25.12.16"
 
       - name: 推送合并结果
         run: |
-          git push origin ${{ env.TARGET_BRANCH }}
+          git push origin 25.12
