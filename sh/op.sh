@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# 闲置未使用函数直接删除，精简脚本
 set -x
 
 # kernel Vermagic
