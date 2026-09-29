@@ -94,7 +94,7 @@ proxy-providers:
   # 主力高速节点组1
   不限量机场:
     type: http
-    url: "https://url.409648.xyz/data/payload/getlink?token=30MTM0OTQ6ODk2NTFjODUxNmFjMzQ5ODhlMTUzOGUwN2ExMGJhN2QyOGExNzY1Mw"
+    url: "https://sub02.stablee.top/s/1168b71bc5303adad71848279b3514868c"
     timeout: 10000     # 单次10秒超时，到点直接放弃，不拖
     interval: 72000
     user-agent: "Clash/1.18.0"
@@ -105,7 +105,7 @@ proxy-providers:
   # 主力高速节点组2
   不限量机场2:
     type: http
-    url: "https://212.47.238.39/api/v1/client/subscribe?token=30e5d602d8ec5ea3b99fbb685942cad8b7"
+    url: "https://url.409648.xyz/data/payload/getlink?token=30MTM0OTQ6ODk2NTFjODUxNmFjMzQ5ODhlMTUzOGUwN2ExMGJhN2QyOGExNzY1Mw"
     timeout: 10000     # 单次10秒超时，到点直接放弃，不拖
     interval: 72000
     user-agent: "Clash/1.18.0"
@@ -116,7 +116,7 @@ proxy-providers:
   # 主力高速节点组3
   不限量机场3:
     type: http
-    url: "https://IwhkWO.mcsslk.xyz/162def6d0f4d8bab04ccc61560092683"
+    url: "https://iwefhljnsdmc.naiyun.uk/api/v1/client/subscribe?token=11e5d602d8ec5ea3b99fbb685942cad8b7"
     timeout: 10000     # 单次10秒超时，到点直接放弃，不拖
     interval: 72000
     user-agent: "Clash/1.18.0"
@@ -137,7 +137,7 @@ proxy-groups:
     max-delay: 3000                                          # 超过3秒直接淘汰，快节点优先、慢节点不堆
     tolerance: 200                                             # 优选节点不切换最低延迟
     lazy: true                                                    # 无流量时不测速
-    exclude-filter: "(到期|过期|试用|测试|体验|剩余|邀请|http|客户端|导航|中国)"                     # 不使用节点词汇    
+    exclude-filter: "(?i)(到期|过期|试用|测试|体验|剩余|邀请|http|客户端|导航|中国|移动|联通|电信|直连|套餐|看不到|客户端|TG|邀请)"                     # 不使用节点词汇    
     use:
       - 不限量机场
       - 不限量机场2
@@ -153,7 +153,7 @@ proxy-groups:
     max-delay: 3000                                            # 超过3秒直接淘汰，快节点优先、慢节点不堆
     tolerance: 200                                               # 优选节点不切换最低延迟
     lazy: true                                                      # 无流量时不测速
-    exclude-filter: "(到期|过期|试用|测试|体验|剩余|邀请|http|客户端|导航|中国)"                     # 不使用节点词汇    
+    exclude-filter: "(?i)(到期|过期|试用|测试|体验|剩余|邀请|http|客户端|导航|中国|移动|联通|电信|直连|套餐|看不到|客户端|TG|邀请)"                     # 不使用节点词汇       
     use:
       - 限量机场
 
